@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>학생 학습 안내</title>
+<style>
+:root{
+  --text:#2C2C2B; --sub:#7D7A75; --canvas:#FFFFFF;
+  --soft:#F9F8F7; --soft2:#F0EFED; --border:#E6E5E3;
+  --blue:#2783DE; --blue-s:#E5F2FC;
+  --green:#46A171; --green-s:#E8F1EC;
+  --orange:#D5803B; --orange-s:#FBEBDE;
+  --red:#E56458; --red-s:#FCE9E7;
+  --r:8px; --r-lg:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",Roboto,sans-serif;
+  background:var(--soft); color:var(--text);
+  font-size:16px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:720px;margin:0 auto;padding:0 20px 56px}
+[hidden]{display:none !important}
+
+.top{background:var(--canvas);border-bottom:1px solid var(--border);padding:28px 20px 24px;margin-bottom:24px}
+.top-inner{max-width:720px;margin:0 auto}
+.brand{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--blue);letter-spacing:.02em;margin-bottom:14px}
+.brand .dot{width:6px;height:6px;border-radius:50%;background:var(--blue)}
+.top h1{font-size:26px;line-height:1.3;font-weight:700;letter-spacing:-.01em}
+.top h1 em{font-style:normal;color:var(--blue)}
+.asof{margin-top:8px;font-size:13px;color:var(--sub)}
+
+section{margin-bottom:32px}
+.sec-head{display:flex;align-items:baseline;gap:8px;margin-bottom:12px;padding:0 2px}
+.sec-head h2{font-size:15px;font-weight:700;letter-spacing:-.01em}
+.sec-head .hint{font-size:12px;color:var(--sub)}
+.card{background:var(--canvas);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px}
+.card + .card{margin-top:12px}
+
+.profile{display:flex;gap:16px;align-items:center}
+.avatar{width:52px;height:52px;flex:0 0 52px;border-radius:var(--r);background:var(--blue-s);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700}
+.profile .name{font-size:20px;font-weight:700;letter-spacing:-.01em}
+.profile .meta{margin-top:3px;font-size:13px;color:var(--sub)}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-top:18px}
+.pgrid div{background:var(--canvas);padding:12px 14px}
+.pgrid dt{font-size:11px;color:var(--sub);margin-bottom:3px;letter-spacing:.02em}
+.pgrid dd{font-size:14px;font-weight:600}
+
+.tt{display:flex;gap:8px;flex-wrap:wrap}
+.tt-day{flex:1 1 0;min-width:96px;border:1px solid var(--border);border-radius:var(--r);padding:12px 10px;text-align:center;background:var(--canvas)}
+.tt-day.on{border-color:var(--blue);background:var(--blue-s)}
+.tt-day .d{font-size:14px;font-weight:700}
+.tt-day.on .d{color:var(--blue)}
+.tt-day .t{margin-top:6px;font-size:12px;color:var(--sub);font-variant-numeric:tabular-nums}
+.tt-day.on .t{color:#1c6bb5}
+.tt-off{color:var(--sub)}
+.tt-day .t.none{color:#B5B2AE}
+
+.book{display:flex;gap:14px}
+.cover{width:56px;height:76px;flex:0 0 56px;border-radius:6px;background:linear-gradient(150deg,#E5F2FC,#CFE6F8);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;background-size:cover;background-position:center}
+.cover.g{background:linear-gradient(150deg,#E8F1EC,#D3E7DB)}
+.book-body{flex:1;min-width:0}
+.book-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.book h3{font-size:15px;font-weight:700;letter-spacing:-.01em}
+.book .series{margin-top:2px;font-size:12px;color:var(--sub)}
+.badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap;letter-spacing:.02em}
+.b-blue{background:var(--blue-s);color:#1c6bb5}
+.b-green{background:var(--green-s);color:#2f7a52}
+.b-gray{background:var(--soft2);color:var(--sub)}
+.b-red{background:var(--red-s);color:#c2453a}
+.b-orange{background:var(--orange-s);color:#a85f22}
+.bar{height:6px;border-radius:999px;background:var(--soft2);margin-top:14px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:999px;background:var(--blue)}
+.book-foot{display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--sub);font-variant-numeric:tabular-nums}
+.book-foot b{color:var(--text);font-weight:600}
+
+.chips{display:flex;gap:8px;margin-bottom:12px}
+.chip{flex:1;border:1px solid var(--border);border-radius:var(--r);background:var(--canvas);padding:12px 8px;text-align:center}
+.chip .n{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.chip .l{margin-top:2px;font-size:11px;color:var(--sub)}
+.chip.ok .n{color:var(--green)}
+.chip.mk .n{color:var(--blue)}
+.chip.ab .n{color:var(--red)}
+
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:340px}
+th{text-align:left;font-size:11px;font-weight:600;color:var(--sub);letter-spacing:.03em;padding:0 0 10px;border-bottom:1px solid var(--border)}
+th.r,td.r{text-align:right;font-variant-numeric:tabular-nums}
+td{padding:12px 0;border-bottom:1px solid var(--soft2)}
+tr:last-child td{border-bottom:none}
+td.date{font-weight:600;white-space:nowrap}
+td .wd{color:var(--sub);font-weight:400;font-size:12px;margin-left:3px}
+td.muted{color:#B5B2AE}
+
+.log{position:relative;padding-left:22px}
+.log::before{content:"";position:absolute;left:4px;top:6px;bottom:6px;width:2px;background:var(--soft2)}
+.log-item{position:relative;padding-bottom:20px}
+.log-item:last-child{padding-bottom:0}
+.log-item::before{content:"";position:absolute;left:-22px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--canvas);border:2px solid var(--blue)}
+.log-date{font-size:12px;color:var(--sub);font-variant-numeric:tabular-nums}
+.log-title{margin-top:3px;font-size:14px;font-weight:700}
+.log-meta{margin-top:5px;display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-size:11px;padding:2px 8px;border-radius:5px;background:var(--soft2);color:var(--sub);font-variant-numeric:tabular-nums}
+.tag.blue{background:var(--blue-s);color:#1c6bb5}
+.log-desc{margin-top:7px;font-size:13px;color:var(--sub);line-height:1.6}
+
+.act{border:1px solid var(--border);border-radius:var(--r);padding:14px}
+.act + .act{margin-top:10px}
+.act-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.act-title{font-size:14px;font-weight:700}
+.act-sub{margin-top:4px;font-size:12px;color:var(--sub)}
+.score{display:flex;align-items:baseline;gap:8px;margin-top:10px}
+.score .v{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.score .d{font-size:12px;color:var(--sub);font-variant-numeric:tabular-nums}
+
+.quote{background:var(--soft);border:1px solid var(--border);border-left:3px solid var(--blue);border-radius:0 var(--r) var(--r) 0;padding:14px 16px}
+.quote + .quote{margin-top:10px}
+.quote p{font-size:14px;line-height:1.65}
+.quote .by{margin-top:8px;font-size:12px;color:var(--sub)}
+
+.notice{display:flex;gap:10px;align-items:flex-start}
+.notice + .notice{margin-top:12px;padding-top:12px;border-top:1px solid var(--soft2)}
+.notice .ico{width:26px;height:26px;flex:0 0 26px;border-radius:6px;background:var(--orange-s);display:flex;align-items:center;justify-content:center;font-size:13px}
+.notice .ico.blue{background:var(--blue-s)}
+.notice .t{font-size:14px;font-weight:600}
+.notice .s{margin-top:2px;font-size:12px;color:var(--sub);line-height:1.6}
+
+.actions{display:flex;gap:10px;margin-bottom:20px}
+.btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;min-height:48px;border-radius:var(--r);text-decoration:none;font-size:14px;font-weight:600}
+.btn.primary{background:var(--blue);color:#fff}
+.btn.ghost{background:var(--canvas);color:var(--text);border:1px solid var(--border)}
+footer{text-align:center;font-size:12px;color:var(--sub);line-height:1.8}
+footer .fine{color:#B5B2AE;font-size:11px;margin-top:6px}
+
+.state{max-width:480px;margin:80px auto;text-align:center;padding:0 20px}
+.state .ico{font-size:40px;margin-bottom:14px}
+.state h2{font-size:17px;font-weight:700;margin-bottom:8px}
+.state p{font-size:13px;color:var(--sub);line-height:1.6}
+
+@media (max-width:480px){
+  .wrap{padding:0 16px 48px}
+  .top{padding:24px 16px 20px}
+  .top h1{font-size:22px}
+  .card{padding:16px}
+  .pgrid{grid-template-columns:1fr}
+  .tt-day{min-width:calc(33.333% - 6px)}
+  table{min-width:0;font-size:13px}
+  th{font-size:10px}
+  td{padding:11px 0}
+  td .wd{margin-left:2px}
+}
+</style>
+</head>
+<body>
+
+<div id="loadingState" class="state">
+  <div class="ico">⏳</div>
+  <h2>학습 안내를 불러오는 중입니다…</h2>
+  <p>잠시만 기다려주세요.</p>
+</div>
+
+<div id="errorState" class="state" hidden>
+  <div class="ico">⚠️</div>
+  <h2>안내문을 찾을 수 없습니다</h2>
+  <p>링크가 만료되었거나 잘못된 주소일 수 있습니다.<br>학원으로 문의해주세요.</p>
+</div>
+
+<div id="reportRoot" hidden>
+
+  <header class="top">
+    <div class="top-inner">
+      <div class="brand"><span class="dot"></span><span id="rAcademy">하다 수학학원</span></div>
+      <h1><em id="rName">—</em> 학생 학습 안내</h1>
+      <p class="asof" id="rAsOf"></p>
+    </div>
+  </header>
+
+  <div class="wrap">
+
+    <section>
+      <div class="card">
+        <div class="profile">
+          <div class="avatar" id="rAvatar"></div>
+          <div>
+            <div class="name" id="rName2"></div>
+            <div class="meta" id="rMeta"></div>
+          </div>
+        </div>
+        <dl class="pgrid">
+          <div><dt>수강 클래스</dt><dd id="rClass">—</dd></div>
+          <div><dt>담당 선생님</dt><dd id="rTeacher">—</dd></div>
+          <div><dt>수업 방식</dt><dd id="rMode">—</dd></div>
+          <div><dt>주간 수업</dt><dd id="rWeekly">—</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <section id="secSchedule" hidden>
+      <div class="sec-head"><h2>수업 시간표</h2><span class="hint">등원 · 하원</span></div>
+      <div class="tt" id="rSchedule"></div>
+    </section>
+
+    <section id="secBooks" hidden>
+      <div class="sec-head"><h2>교재 진도</h2><span class="hint" id="rBookCount"></span></div>
+      <div id="rBooks"></div>
+    </section>
+
+    <section id="secAttendance" hidden>
+      <div class="sec-head"><h2>등하원 기록</h2><span class="hint" id="rAttPeriod"></span></div>
+      <div class="chips" id="rChips" hidden></div>
+      <div class="card" id="rAttCard" hidden>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>날짜</th><th>상태</th><th class="r">등원</th><th class="r">하원</th></tr></thead>
+            <tbody id="rAttRows"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card" id="rAttText" hidden></div>
+    </section>
+
+    <section id="secLogs" hidden>
+      <div class="sec-head"><h2>학습 기록</h2><span class="hint" id="rLogCount"></span></div>
+      <div class="card"><div class="log" id="rLogs"></div></div>
+    </section>
+
+    <section id="secHomework" hidden>
+      <div class="sec-head"><h2>과제</h2><span class="hint" id="rHwCount"></span></div>
+      <div class="card" id="rHomework"></div>
+    </section>
+
+    <section id="secTests" hidden>
+      <div class="sec-head"><h2>평가</h2><span class="hint" id="rTestCount"></span></div>
+      <div class="card" id="rTests"></div>
+    </section>
+
+    <section id="secComments" hidden>
+      <div class="sec-head"><h2>선생님 한마디</h2></div>
+      <div id="rComments"></div>
+    </section>
+
+    <section id="secNotices" hidden>
+      <div class="sec-head"><h2>안내사항</h2></div>
+      <div class="card" id="rNotices"></div>
+    </section>
+
+    <div class="actions">
+      <a class="btn primary" id="rTel" href="#">전화 문의</a>
+      <a class="btn ghost" href="#">카카오톡 상담</a>
+    </div>
+    <footer>
+      <div id="rFooterName"></div>
+      <div class="fine" id="rIssued"></div>
+    </footer>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ── Supabase 연결 정보 (anon/publishable key만 사용 — 브라우저 노출 안전) ──
+  var SUPABASE_URL = "https://xcokusmqndfbsvlwquxr.supabase.co";
+  var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhjb2t1c21xbmRmYnN2bHdxdXhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3OTk0NDcsImV4cCI6MjEwMzM3NTQ0N30.0vavFiupJD1fP8o5HKwIawEQoJUc3wz-RPCtFOyJBwU";
+  // 금액/결제 관련 필드는 절대 렌더링하지 않습니다 (보안 원칙).
+  var HIDDEN_KEYS = ["tuition", "수강료", "parentContact", "학부모 연락처", "payment", "price", "금액"];
+
+  var $ = function(id){ return document.getElementById(id); };
+  var esc = function(s){
+    return String(s == null ? "" : s)
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;");
+  };
+  function hasWarning(s){
+    return typeof s === "string" && (s.indexOf("⚠️") !== -1 || s.indexOf("🔁") !== -1);
+  }
+  function show(el){ el.hidden = false; }
+  function hide(el){ el.hidden = true; }
+
+  function getToken(){
+    var params = new URLSearchParams(window.location.search);
+    return (params.get("token") || "").trim();
+  }
+
+  function stateError(){
+    hide($("loadingState"));
+    show($("errorState"));
+  }
+
+  var DAYS = ["월","화","수","목","금","토"];
+
+  // 값이 배열 형태(구조화된 데이터)인지, {text: ...} 형태(현재 Edge Function 응답)인지 판별
+  function asArray(v){ return Array.isArray(v) ? v : null; }
+  function asText(v){
+    if (v == null) return "";
+    if (typeof v === "string") return v;
+    if (typeof v === "object" && typeof v.text === "string") return v.text;
+    return "";
+  }
+
+  function render(row){
+    var academy = row.academy_name || "하다 수학학원";
+    var tel = row.academy_tel || "";
+
+    $("rAcademy").textContent = academy;
+    $("rName").textContent = row.student_name || "";
+    $("rName2").textContent = row.student_name || "";
+    $("rAvatar").textContent = (row.student_name || "?").slice(0,1);
+    $("rMeta").textContent = row.school_grade || "";
+    $("rAsOf").textContent = row.period_label || "";
+    $("rClass").textContent = row.class_name || "—";
+    $("rTeacher").textContent = row.teacher_name || "—";
+    $("rMode").textContent = row.class_mode || "—";
+
+    /* 시간표 */
+    var sch = asArray(row.schedule) || [];
+    if (sch.length) {
+      var byDay = {};
+      sch.forEach(function(x){ byDay[x.day] = x; });
+      $("rWeekly").textContent = "주 " + sch.length + "회 (" + sch.map(function(x){ return x.day; }).join(" · ") + ")";
+      $("rSchedule").innerHTML = DAYS.filter(function(dy){ return dy !== "토" || byDay["토"]; }).map(function(dy){
+        var it = byDay[dy];
+        return it
+          ? '<div class="tt-day on"><div class="d">' + dy + '</div><div class="t">' + esc(it.start) + '<br>' + esc(it.end) + '</div></div>'
+          : '<div class="tt-day"><div class="d tt-off">' + dy + '</div><div class="t none">—</div></div>';
+      }).join("");
+      show($("secSchedule"));
+    } else {
+      $("rWeekly").textContent = "—";
+    }
+
+    /* 교재 */
+    var books = asArray(row.books) || [];
+    if (books.length) {
+      $("rBookCount").textContent = books.length + "권";
+      $("rBooks").innerHTML = books.map(function(b){
+        var pct = typeof b.progress === "number" ? Math.max(0, Math.min(100, b.progress)) : null;
+        var cls = b.status === "진행 중" ? "b-blue" : (b.status === "완료" ? "b-green" : "b-gray");
+        var cover = b.cover ? '<div class="cover" style="background-image:url(' + esc(b.cover) + ')"></div>' : '<div class="cover">📘</div>';
+        return '<div class="card"><div class="book">' + cover +
+          '<div class="book-body"><div class="book-top"><div>' +
+          '<h3>' + esc(b.title) + '</h3>' +
+          '<div class="series">' + esc([b.series, b.pages ? "전체 " + b.pages + "p" : ""].filter(Boolean).join(" · ")) + '</div>' +
+          '</div><span class="badge ' + cls + '">' + esc(b.status || "") + '</span></div>' +
+          (pct === null ? "" : '<div class="bar"><i style="width:' + pct + '%"></i></div>') +
+          '<div class="book-foot"><span>' + (b.range ? '최근 범위 <b>' + esc(b.range) + '</b>' : '학습 예정') + '</span><span>' + (pct === null ? "" : '<b>' + pct + '%</b>') + '</span></div>' +
+          '</div></div></div>';
+      }).join("");
+      show($("secBooks"));
+    }
+
+    /* 등하원 */
+    var att = asArray(row.attendance_rows) || [];
+    var sum = (row.attendance_summary && typeof row.attendance_summary === "object" && !Array.isArray(row.attendance_summary) && typeof row.attendance_summary.present !== "undefined") ? row.attendance_summary : null;
+    var attText = asText(row.attendance_summary);
+    if (att.length || sum) {
+      $("rAttPeriod").textContent = row.attPeriod || "";
+      if (sum) {
+        $("rChips").innerHTML =
+          '<div class="chip ok"><div class="n">' + (sum.present||0) + '</div><div class="l">출석</div></div>' +
+          '<div class="chip mk"><div class="n">' + (sum.makeup||0) + '</div><div class="l">보강</div></div>' +
+          '<div class="chip ab"><div class="n">' + (sum.absent||0) + '</div><div class="l">결석</div></div>';
+        show($("rChips"));
+      }
+      if (att.length) {
+        $("rAttRows").innerHTML = att.map(function(a){
+          var cls = a.status === "출석" ? "b-green" : (a.status === "결석" ? "b-red" : "b-blue");
+          return '<tr><td class="date">' + esc(a.date) + '<span class="wd">' + esc(a.weekday||"") + '</span></td>' +
+            '<td><span class="badge ' + cls + '">' + esc(a.status) + '</span></td>' +
+            '<td class="r' + (a.in ? '' : ' muted') + '">' + esc(a.in || "—") + '</td>' +
+            '<td class="r' + (a.out ? '' : ' muted') + '">' + esc(a.out || "—") + '</td></tr>';
+        }).join("");
+        show($("rAttCard"));
+      }
+      show($("secAttendance"));
+    } else if (attText && !hasWarning(attText)) {
+      $("rAttText").textContent = attText;
+      show($("rAttText"));
+      show($("secAttendance"));
+    }
+
+    /* 학습 기록 */
+    var logs = asArray(row.study_logs) || [];
+    var studyText = asText(row.study_logs);
+    if (logs.length) {
+      $("rLogCount").textContent = "최근 " + logs.length + "회";
+      $("rLogs").innerHTML = logs.map(function(l){
+        return '<div class="log-item">' +
+          '<div class="log-date">' + esc(l.date) + '</div>' +
+          '<div class="log-title">' + esc(l.book) + '</div>' +
+          '<div class="log-meta">' + (l.range ? '<span class="tag blue">' + esc(l.range) + '</span>' : '') + (l.unit ? '<span class="tag">' + esc(l.unit) + '</span>' : '') + '</div>' +
+          (l.note ? '<p class="log-desc">' + esc(l.note) + '</p>' : '') +
+          '</div>';
+      }).join("");
+      show($("secLogs"));
+    } else if (studyText && !hasWarning(studyText)) {
+      $("rLogs").innerHTML = '<div class="log-item" style="padding-left:0"><p class="log-desc">' + esc(studyText) + '</p></div>';
+      show($("secLogs"));
+    }
+
+    /* 과제 */
+    var hw = asArray(row.homework) || [];
+    var hwText = asText(row.homework);
+    if (hw.length) {
+      $("rHwCount").textContent = "최근 " + hw.length + "건";
+      $("rHomework").innerHTML = hw.map(function(h){
+        var cls = h.status === "제출" ? "b-green" : (h.status === "미제출" ? "b-red" : "b-orange");
+        return '<div class="act"><div class="act-top"><div>' +
+          '<div class="act-title">' + esc(h.title) + '</div>' +
+          (h.due ? '<div class="act-sub">마감 ' + esc(h.due) + '</div>' : '') +
+          '</div><span class="badge ' + cls + '">' + esc(h.status || "") + '</span></div></div>';
+      }).join("");
+      show($("secHomework"));
+    } else if (hwText && !hasWarning(hwText)) {
+      $("rHomework").innerHTML = '<p style="font-size:13px;color:var(--sub);line-height:1.6">' + esc(hwText) + '</p>';
+      show($("secHomework"));
+    }
+
+    /* 평가 */
+    var tests = asArray(row.tests) || [];
+    if (tests.length) {
+      $("rTestCount").textContent = "최근 " + tests.length + "건";
+      $("rTests").innerHTML = tests.map(function(t){
+        var score = (typeof t.correct === "number" && t.total) ? Math.round(t.correct / t.total * 100) : null;
+        var cls = score === null ? "b-gray" : (score >= 80 ? "b-green" : "b-blue");
+        return '<div class="act"><div class="act-top"><div>' +
+          '<div class="act-title">' + esc(t.title) + '</div>' +
+          (t.date ? '<div class="act-sub">' + esc(t.date) + '</div>' : '') +
+          '</div>' + (score === null ? '' : '<span class="badge ' + cls + '">' + score + '점</span>') + '</div>' +
+          (t.total ? '<div class="score"><span class="v">' + t.correct + '</span><span class="d">/ ' + t.total + '문항 정답 · 오답 ' + (t.total - t.correct) + '문항</span></div>' : '') +
+          '</div>';
+      }).join("");
+      show($("secTests"));
+    }
+
+    /* 코멘트 */
+    var cm = asArray(row.teacher_comments) || [];
+    if (cm.length) {
+      $("rComments").innerHTML = cm.map(function(c){
+        return '<div class="quote"><p>' + esc(c.text) + '</p><div class="by">' + esc([c.date, c.by].filter(Boolean).join(" · ")) + '</div></div>';
+      }).join("");
+      show($("secComments"));
+    }
+
+    /* 안내 — 금액/연락처 등 민감 필드는 항상 제외 */
+    var ntRaw = row.notices;
+    var nt = asArray(ntRaw) || [];
+    nt = nt.filter(function(n){
+      var t = (n.title || "") + " " + (n.body || "");
+      return !HIDDEN_KEYS.some(function(k){ return t.indexOf(k) !== -1; });
+    });
+    if (nt.length) {
+      $("rNotices").innerHTML = nt.map(function(n){
+        return '<div class="notice"><div class="ico' + (n.type === "info" ? " blue" : "") + '">' + esc(n.icon || "💤") + '</div><div>' +
+          '<div class="t">' + esc(n.title) + '</div>' + (n.body ? '<div class="s">' + esc(n.body) + '</div>' : '') + '</div></div>';
+      }).join("");
+      show($("secNotices"));
+    }
+
+    /* 푸터 */
+    $("rTel").href = tel ? "tel:" + tel.replace(/[^0-9+]/g, "") : "#";
+    $("rFooterName").textContent = [academy, tel].filter(Boolean).join(" · ");
+    $("rIssued").innerHTML =
+      "본 안내는 " + esc(row.updated_at ? new Date(row.updated_at).toLocaleString("ko-KR") : "") + " 기준으로 생성된 학습 기록입니다.<br>" +
+      "학생 개인 안내용 링크이므로 외부 공유를 삼가주세요.";
+
+    document.title = (row.student_name || "학생") + " 학생 학습 안내";
+
+    hide($("loadingState"));
+    show($("reportRoot"));
+  }
+
+  function init(){
+    var token = getToken();
+    if (!token) { stateError(); return; }
+
+    var endpoint = SUPABASE_URL + "/rest/v1/student_reports?access_token=eq." + encodeURIComponent(token) + "&select=*";
+    fetch(endpoint, {
+      headers: {
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": "Bearer " + SUPABASE_ANON_KEY,
+        // 🔒 이 헤더가 Supabase RLS 정책과 짝을 이뤄, 토큰이 일치하는 행만 조회되도록 강제합니다.
+        // (RLS가 "true"로만 되어 있으면 필터 없는 요청으로 전체 테이블이 노출될 수 있어 추가했습니다.)
+        "x-report-token": token
+      }
+    })
+    .then(function(r){ if (!r.ok) throw new Error("http " + r.status); return r.json(); })
+    .then(function(rows){
+      if (!rows || !rows.length) { stateError(); return; }
+      render(rows[0]);
+    })
+    .catch(function(){ stateError(); });
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
