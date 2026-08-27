@@ -417,8 +417,8 @@ function render(d) {
         <div class="row"><span>결석</span><span>${attendanceSummary.absent ?? 0}회</span></div>
         <div class="row"><span>보강</span><span>${attendanceSummary.makeup ?? 0}회</span></div>
         ${attendanceRows.length ? attendanceRows.map((r) => `
-          <div class="row clickable" ${r.iso ? `onclick='openDayDetail(${JSON.stringify(r.iso.slice(0,10))})'` : ""}><span>${esc(r.date)} (${esc(r.weekday || "")})</span><span><span class="badge ${esc(r.status)}">${esc(r.status)}</span></span></div>
-        `).join("") : '<div class="empty">최근 출석 기록이 없습니다.</div>'}
+        <div class="row clickable" ${r.iso ? `onclick='openDayDetail(${JSON.stringify(r.iso.slice(0,10))})'` : ""}><span>${esc(r.date)} (${esc(r.weekday || "")})</span><span><span class="badge ${esc(r.status || "예정")}">${esc(r.status || "예정")}</span></span></div>
+`).join("") : '<div class="empty">최근 출석 기록이 없습니다.</div>'}
       </div>
 
       <div class="card">
