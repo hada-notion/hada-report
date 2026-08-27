@@ -478,15 +478,17 @@ footer .fine{color:#B5B2AE;font-size:11px;margin-top:6px}
     var token = getToken();
     if (!token) { stateError(); return; }
 
-    var endpoint = SUPABASE_URL + "/rest/v1/student_reports?access_token=eq." + encodeURIComponent(token) + "&select=*";
+    // 🔒 커스텀 헤더 방식은 브라우저 CORS에 막힐 수 있어, 토큰을 인자로 받는 RPC 함수(get_report_by_token)를 통해서만 조회합니다.
+    // (테이블 직접 SELECT 권한은 anon에게서 완전히 제거하고, 이 함수만 실행 권한을 줍니다.)
+    var endpoint = SUPABASE_URL + "/rest/v1/rpc/get_report_by_token";
     fetch(endpoint, {
+      method: "POST",
       headers: {
         "apikey": SUPABASE_ANON_KEY,
         "Authorization": "Bearer " + SUPABASE_ANON_KEY,
-        // 🔒 이 헤더가 Supabase RLS 정책과 짝을 이뤄, 토큰이 일치하는 행만 조회되도록 강제합니다.
-        // (RLS가 "true"로만 되어 있으면 필터 없는 요청으로 전체 테이블이 노출될 수 있어 추가했습니다.)
-        "x-report-token": token
-      }
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ p_token: token })
     })
     .then(function(r){ if (!r.ok) throw new Error("http " + r.status); return r.json(); })
     .then(function(rows){
