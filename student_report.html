@@ -12,7 +12,7 @@
     background: #f5f6f8;
     color: #222;
   }
-  .container { max-width: 480px; margin: 0 auto; padding: 16px; }
+  .container { max-width: 480px; margin: 0 auto; padding: 16px; padding-bottom: 90px; }
   .header {
     background: linear-gradient(135deg, #6c5ce7, #a29bfe);
     color: #fff;
@@ -22,6 +22,34 @@
   }
   .header h1 { margin: 0 0 4px; font-size: 20px; }
   .header p { margin: 0; opacity: 0.9; font-size: 14px; }
+
+  .tabbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    background: #fff;
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .tab {
+    flex: 1;
+    text-align: center;
+    padding: 10px 0;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #888;
+    cursor: pointer;
+    user-select: none;
+  }
+  .tab.active { background: #6c5ce7; color: #fff; }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
   .card {
     background: #fff;
     border-radius: 14px;
@@ -50,6 +78,8 @@
     border-radius: 999px;
     font-size: 12px;
     font-weight: 600;
+    background: #eee;
+    color: #555;
   }
   .badge.출석 { background: #e6f7ee; color: #1e9e5c; }
   .badge.결석 { background: #fdeaea; color: #e04b4b; }
@@ -63,11 +93,7 @@
   .list-item .title { font-weight: 600; margin-bottom: 3px; }
   .list-item .meta { color: #888; font-size: 12px; }
   .empty { color: #aaa; font-size: 13px; text-align: center; padding: 12px 0; }
-  .loading, .error {
-    text-align: center;
-    padding: 60px 20px;
-    color: #888;
-  }
+  .loading, .error { text-align: center; padding: 60px 20px; color: #888; }
   .error { color: #e04b4b; }
   .notice {
     background: #fff8e1;
@@ -76,6 +102,33 @@
     border-radius: 6px;
     font-size: 13px;
     margin-bottom: 8px;
+  }
+  .today-highlight {
+    text-align: center;
+    padding: 20px 0;
+  }
+  .today-highlight .status {
+    display: inline-block;
+    font-size: 18px;
+    font-weight: 700;
+    padding: 8px 20px;
+    border-radius: 999px;
+    margin-bottom: 8px;
+  }
+  .today-highlight .date { color: #888; font-size: 13px; }
+  .cta {
+    display: block;
+    width: 100%;
+    text-align: center;
+    background: #6c5ce7;
+    color: #fff;
+    border: none;
+    padding: 14px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
   }
 </style>
 </head>
@@ -93,11 +146,6 @@ const app = document.getElementById("app")
 function esc(s) {
   if (s === null || s === undefined) return ""
   return String(s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]))
-}
-
-function badgeClass(status) {
-  if (!status) return ""
-  return esc(status)
 }
 
 async function loadReport() {
@@ -120,9 +168,7 @@ async function loadReport() {
       body: JSON.stringify({ p_token: token }),
     })
 
-    if (!res.ok) {
-      throw new Error(`서버 오류: ${res.status}`)
-    }
+    if (!res.ok) throw new Error(`서버 오류: ${res.status}`)
 
     let data = await res.json()
     if (Array.isArray(data)) data = data[0]
@@ -149,98 +195,132 @@ function render(d) {
   const teacherComments = d.teacher_comments || []
   const notices = d.notices || []
 
+  const latestAttendance = attendanceRows[0]
+  const latestStudy = studyLogs[0]
+
   app.innerHTML = `
     <div class="header">
       <h1>${esc(d.student_name)} 학생 학습 리포트</h1>
       <p>${esc(d.school_grade || "")} · ${esc(d.class_name || "")} ${d.class_mode ? "· " + esc(d.class_mode) : ""}</p>
       <p>담당 강사: ${esc(d.teacher_name || "-")}</p>
-      ${d.period_label ? `<p>${esc(d.period_label)}</p>` : ""}
     </div>
 
-    ${notices.length ? `
-    <div class="card">
-      <h2>📢 공지사항</h2>
-      ${notices.map((n) => `<div class="notice">${esc(typeof n === "string" ? n : n.content)}</div>`).join("")}
-    </div>` : ""}
-
-    ${schedule.length ? `
-    <div class="card">
-      <h2>🗓 시간표</h2>
-      ${schedule.map((s) => `
-        <div class="row">
-          <span>${esc(s.weekday || s.day || "")}</span>
-          <span>${esc(s.time || "")}</span>
-        </div>
-      `).join("")}
-    </div>` : ""}
-
-    ${books.length ? `
-    <div class="card">
-      <h2>📚 진도 교재</h2>
-      ${books.map((b) => `
-        <div class="row">
-          <span>${esc(typeof b === "string" ? b : b.title)}</span>
-          <span>${esc(typeof b === "string" ? "" : (b.progress || ""))}</span>
-        </div>
-      `).join("")}
-    </div>` : ""}
-
-    <div class="card">
-      <h2>✅ 출석 현황</h2>
-      <div class="row"><span>출석</span><span>${attendanceSummary.present ?? 0}회</span></div>
-      <div class="row"><span>결석</span><span>${attendanceSummary.absent ?? 0}회</span></div>
-      <div class="row"><span>보강</span><span>${attendanceSummary.makeup ?? 0}회</span></div>
-      ${attendanceRows.length ? attendanceRows.map((r) => `
-        <div class="row">
-          <span>${esc(r.date)} (${esc(r.weekday || "")})</span>
-          <span><span class="badge ${badgeClass(r.status)}">${esc(r.status)}</span></span>
-        </div>
-      `).join("") : '<div class="empty">최근 출석 기록이 없습니다.</div>'}
+    <div class="tabbar">
+      <div class="tab active" id="tab-today" onclick="switchView('today')">오늘 학습</div>
+      <div class="tab" id="tab-home" onclick="switchView('home')">학생 홈</div>
     </div>
 
-    <div class="card">
-      <h2>📖 최근 학습 기록</h2>
-      ${studyLogs.length ? studyLogs.map((l) => `
-        <div class="list-item">
-          <div class="title">${esc(l.book || "")} ${esc(l.range || "")}</div>
-          <div class="meta">${esc(l.date)} · 단원: ${esc(l.unit || "-")}</div>
+    <div class="view active" id="view-today">
+      ${notices.length ? notices.map((n) => `<div class="notice">${esc(typeof n === "string" ? n : n.content)}</div>`).join("") : ""}
+
+      <div class="card">
+        <div class="today-highlight">
+          <div class="status badge ${esc(latestAttendance ? latestAttendance.status : "")}">${latestAttendance ? esc(latestAttendance.status) : "출석 기록 없음"}</div>
+          <div class="date">${latestAttendance ? esc(latestAttendance.date) + " (" + esc(latestAttendance.weekday || "") + ")" : ""}</div>
         </div>
-      `).join("") : '<div class="empty">최근 학습 기록이 없습니다.</div>'}
+      </div>
+
+      <div class="card">
+        <h2>📖 오늘의 학습 내용</h2>
+        ${latestStudy ? `
+          <div class="list-item">
+            <div class="title">${esc(latestStudy.book || "")} ${esc(latestStudy.range || "")}</div>
+            <div class="meta">${esc(latestStudy.date)} · 단원: ${esc(latestStudy.unit || "-")}</div>
+          </div>
+        ` : '<div class="empty">오늘 등록된 학습 기록이 없습니다.</div>'}
+      </div>
+
+      ${teacherComments.length ? `
+      <div class="card">
+        <h2>💬 선생님 코멘트</h2>
+        <div class="list-item">
+          <div class="title">${esc(teacherComments[0].text)}</div>
+          <div class="meta">${esc(teacherComments[0].date || "")} · ${esc(teacherComments[0].by || "")}</div>
+        </div>
+      </div>` : ""}
+
+      <button class="cta" onclick="switchView('home')">학생 홈 전체 보기 →</button>
     </div>
 
-    ${homework.length ? `
-    <div class="card">
-      <h2>📝 과제</h2>
-      ${homework.map((h) => `
-        <div class="list-item">
-          <div class="title">${esc(h.title)}</div>
-          <div class="meta">마감: ${esc(h.due || "-")} · 상태: <span class="badge">${esc(h.status)}</span></div>
-        </div>
-      `).join("")}
-    </div>` : ""}
+    <div class="view" id="view-home">
+      ${schedule.length ? `
+      <div class="card">
+        <h2>🗓 시간표</h2>
+        ${schedule.map((s) => `
+          <div class="row"><span>${esc(s.weekday || s.day || "")}</span><span>${esc(s.time || "")}</span></div>
+        `).join("")}
+      </div>` : ""}
 
-    ${tests.length ? `
-    <div class="card">
-      <h2>🎯 평가 결과</h2>
-      ${tests.map((t) => `
-        <div class="list-item">
-          <div class="title">${esc(t.title)}</div>
-          <div class="meta">${esc(t.date)} · 정답 ${t.correct ?? 0} / ${t.total ?? 0}</div>
-        </div>
-      `).join("")}
-    </div>` : ""}
+      ${books.length ? `
+      <div class="card">
+        <h2>📚 진도 교재</h2>
+        ${books.map((b) => `
+          <div class="row"><span>${esc(typeof b === "string" ? b : b.title)}</span><span>${esc(typeof b === "string" ? "" : (b.progress || ""))}</span></div>
+        `).join("")}
+      </div>` : ""}
 
-    ${teacherComments.length ? `
-    <div class="card">
-      <h2>💬 선생님 코멘트</h2>
-      ${teacherComments.map((c) => `
-        <div class="list-item">
-          <div class="title">${esc(c.text)}</div>
-          <div class="meta">${esc(c.date || "")} · ${esc(c.by || "")}</div>
-        </div>
-      `).join("")}
-    </div>` : ""}
+      <div class="card">
+        <h2>✅ 출석 현황</h2>
+        <div class="row"><span>출석</span><span>${attendanceSummary.present ?? 0}회</span></div>
+        <div class="row"><span>결석</span><span>${attendanceSummary.absent ?? 0}회</span></div>
+        <div class="row"><span>보강</span><span>${attendanceSummary.makeup ?? 0}회</span></div>
+        ${attendanceRows.length ? attendanceRows.map((r) => `
+          <div class="row"><span>${esc(r.date)} (${esc(r.weekday || "")})</span><span><span class="badge ${esc(r.status)}">${esc(r.status)}</span></span></div>
+        `).join("") : '<div class="empty">최근 출석 기록이 없습니다.</div>'}
+      </div>
+
+      <div class="card">
+        <h2>📖 최근 학습 기록</h2>
+        ${studyLogs.length ? studyLogs.map((l) => `
+          <div class="list-item">
+            <div class="title">${esc(l.book || "")} ${esc(l.range || "")}</div>
+            <div class="meta">${esc(l.date)} · 단원: ${esc(l.unit || "-")}</div>
+          </div>
+        `).join("") : '<div class="empty">최근 학습 기록이 없습니다.</div>'}
+      </div>
+
+      ${homework.length ? `
+      <div class="card">
+        <h2>📝 과제</h2>
+        ${homework.map((h) => `
+          <div class="list-item">
+            <div class="title">${esc(h.title)}</div>
+            <div class="meta">마감: ${esc(h.due || "-")} · 상태: <span class="badge">${esc(h.status)}</span></div>
+          </div>
+        `).join("")}
+      </div>` : ""}
+
+      ${tests.length ? `
+      <div class="card">
+        <h2>🎯 평가 결과</h2>
+        ${tests.map((t) => `
+          <div class="list-item">
+            <div class="title">${esc(t.title)}</div>
+            <div class="meta">${esc(t.date)} · 정답 ${t.correct ?? 0} / ${t.total ?? 0}</div>
+          </div>
+        `).join("")}
+      </div>` : ""}
+
+      ${teacherComments.length ? `
+      <div class="card">
+        <h2>💬 선생님 코멘트 전체</h2>
+        ${teacherComments.map((c) => `
+          <div class="list-item">
+            <div class="title">${esc(c.text)}</div>
+            <div class="meta">${esc(c.date || "")} · ${esc(c.by || "")}</div>
+          </div>
+        `).join("")}
+      </div>` : ""}
+    </div>
   `
+}
+
+function switchView(view) {
+  document.getElementById("view-today").classList.toggle("active", view === "today")
+  document.getElementById("view-home").classList.toggle("active", view === "home")
+  document.getElementById("tab-today").classList.toggle("active", view === "today")
+  document.getElementById("tab-home").classList.toggle("active", view === "home")
+  window.scrollTo({ top: 0, behavior: "smooth" })
 }
 
 loadReport()
