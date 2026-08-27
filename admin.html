@@ -33,6 +33,7 @@
   a.link { color: #6c5ce7; font-size: 12px; }
   .status { font-size: 12px; color: #888; }
   .loading, .error { text-align: center; padding: 40px; color: #888; }
+  .error { color: #e04b4b; }
   .toolbar { margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
   .toolbar button { background: #333; }
 </style>
@@ -49,6 +50,7 @@
 
 <script>
 const SUPABASE_URL = "https://xcokusmqndfbsvlwquxr.supabase.co"
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhjb2t1c21xbmRmYnN2bHdxdXhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3OTk0NDcsImV4cCI6MjEwMzM3NTQ0N30.0vavFiupJD1fP8o5HKwIawEQoJUc3wz-RPCtFOyJBwU"
 
 function esc(s) {
   if (s === null || s === undefined) return ""
@@ -85,14 +87,18 @@ async function loadStudents() {
 
   try {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/list-students`, {
-      headers: { "x-admin-key": adminKey },
+      headers: {
+        "x-admin-key": adminKey,
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        "apikey": SUPABASE_ANON_KEY,
+      },
     })
     if (res.status === 401) {
       sessionStorage.removeItem("admin_key")
       app.innerHTML = '<div class="error">관리자 키가 올바르지 않습니다. 새로고침 후 다시 시도하세요.</div>'
       return
     }
-    if (!res.ok) throw new Error(`서버 오류: ${res.status}`)
+    if (!res.ok) throw new Error(`서버 오류: ${res.status} ${await res.text()}`)
 
     const data = await res.json()
     renderTable(data.students || [])
@@ -104,6 +110,11 @@ async function loadStudents() {
 function renderTable(students) {
   const app = document.getElementById("app")
   document.getElementById("count").textContent = `총 ${students.length}명`
+
+  if (!students.length) {
+    app.innerHTML = '<div class="error">학생 목록이 비어 있습니다. 등록(학원) DB 데이터베이스 ID 설정을 확인해주세요.</div>'
+    return
+  }
 
   app.innerHTML = `
     <table>
@@ -136,10 +147,15 @@ async function generateReport(index, registrationId) {
   try {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/sync-student-report`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-key": adminKey,
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        "apikey": SUPABASE_ANON_KEY,
+      },
       body: JSON.stringify({ registrationId }),
     })
-    if (!res.ok) throw new Error(`실패: ${res.status}`)
+    if (!res.ok) throw new Error(`실패: ${res.status} ${await res.text()}`)
     const result = await res.json()
 
     document.getElementById(`updated-${index}`).textContent = formatDate(new Date().toISOString())
