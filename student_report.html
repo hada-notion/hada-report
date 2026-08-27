@@ -103,10 +103,7 @@
     font-size: 13px;
     margin-bottom: 8px;
   }
-  .today-highlight {
-    text-align: center;
-    padding: 20px 0;
-  }
+  .today-highlight { text-align: center; padding: 20px 0; }
   .today-highlight .status {
     display: inline-block;
     font-size: 18px;
@@ -130,6 +127,49 @@
     cursor: pointer;
     margin-top: 8px;
   }
+  .clickable { cursor: pointer; }
+  .clickable:active { opacity: 0.6; }
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal-sheet {
+    background: #fff;
+    width: 100%;
+    max-width: 480px;
+    max-height: 80vh;
+    overflow-y: auto;
+    border-radius: 20px 20px 0 0;
+    padding: 20px;
+  }
+  .modal-sheet h3 {
+    margin: 0 0 14px;
+    font-size: 17px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-sheet h4 {
+    font-size: 13px;
+    color: #6c5ce7;
+    margin: 16px 0 6px;
+  }
+  .modal-sheet h4:first-of-type { margin-top: 0; }
+  .modal-close {
+    background: #f0f0f0;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+    cursor: pointer;
+  }
 </style>
 </head>
 <body>
@@ -137,11 +177,19 @@
   <div class="loading">불러오는 중...</div>
 </div>
 
+<div class="modal-overlay" id="modal" onclick="if(event.target===this) closeModal()">
+  <div class="modal-sheet">
+    <h3><span id="modal-title"></span><button class="modal-close" onclick="closeModal()">✕</button></h3>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
 <script>
 const SUPABASE_URL = "https://xcokusmqndfbsvlwquxr.supabase.co"
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhjb2t1c21xbmRmYnN2bHdxdXhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3OTk0NDcsImV4cCI6MjEwMzM3NTQ0N30.0vavFiupJD1fP8o5HKwIawEQoJUc3wz-RPCtFOyJBwU"
 
 const app = document.getElementById("app")
+let currentData = null
 
 function esc(s) {
   if (s === null || s === undefined) return ""
@@ -185,6 +233,8 @@ async function loadReport() {
 }
 
 function render(d) {
+  currentData = d
+
   const schedule = d.schedule || []
   const books = d.books || []
   const attendanceSummary = d.attendance_summary || {}
@@ -254,9 +304,14 @@ function render(d) {
       ${books.length ? `
       <div class="card">
         <h2>📚 진도 교재</h2>
-        ${books.map((b) => `
-          <div class="row"><span>${esc(typeof b === "string" ? b : b.title)}</span><span>${esc(typeof b === "string" ? "" : (b.progress || ""))}</span></div>
-        `).join("")}
+        ${books.map((b) => {
+          const title = typeof b === "string" ? b : b.title
+          return `
+          <div class="row clickable" onclick='openBookDetail(${JSON.stringify(title)})'>
+            <span>${esc(title)} ›</span>
+            <span>${esc(typeof b === "string" ? "" : (b.progress || ""))}</span>
+          </div>`
+        }).join("")}
       </div>` : ""}
 
       <div class="card">
@@ -313,6 +368,38 @@ function render(d) {
       </div>` : ""}
     </div>
   `
+}
+
+function openBookDetail(bookTitle) {
+  const d = currentData
+  if (!d) return
+  const logs = (d.study_logs || []).filter((l) => l.book === bookTitle)
+  const hw = (d.homework || []).filter((h) => h.book === bookTitle)
+  const tests = (d.tests || []).filter((t) => t.book === bookTitle)
+
+  const html = `
+    ${logs.length ? `
+      <h4>📖 학습 기록</h4>
+      ${logs.map((l) => `<div class="list-item"><div class="title">${esc(l.range || "")}</div><div class="meta">${esc(l.date)} · 단원: ${esc(l.unit || "-")}</div></div>`).join("")}
+    ` : ""}
+    ${hw.length ? `
+      <h4>📝 과제</h4>
+      ${hw.map((h) => `<div class="list-item"><div class="title">${esc(h.title)}</div><div class="meta">마감: ${esc(h.due || "-")} · ${esc(h.status)}</div></div>`).join("")}
+    ` : ""}
+    ${tests.length ? `
+      <h4>🎯 평가</h4>
+      ${tests.map((t) => `<div class="list-item"><div class="title">${esc(t.title)}</div><div class="meta">${esc(t.date)} · 정답 ${t.correct ?? 0}/${t.total ?? 0}</div></div>`).join("")}
+    ` : ""}
+    ${!logs.length && !hw.length && !tests.length ? '<div class="empty">이 교재와 관련된 기록이 없습니다.</div>' : ""}
+  `
+
+  document.getElementById("modal-title").textContent = bookTitle
+  document.getElementById("modal-body").innerHTML = html
+  document.getElementById("modal").classList.add("active")
+}
+
+function closeModal() {
+  document.getElementById("modal").classList.remove("active")
 }
 
 function switchView(view) {
