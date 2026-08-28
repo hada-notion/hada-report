@@ -340,7 +340,7 @@ body {
 .log-note { font-size: 13px; color: #444; line-height: 1.55; margin-top: 8px; white-space: pre-wrap; }
 .log-photo { width: 100%; border-radius: 10px; aspect-ratio: 4 / 3; object-fit: cover; display: block; margin-top: 8px; }
 .log-date-group { margin-bottom: 6px; }
-.log-date-label { font-size: 13px; font-weight: 700; color: #333; margin: 0 0 10px; display: flex; align-items: center; gap: 6px; }
+.log-date-label { font-size: 13px; font-weight: 600; color: #9a9a9a; margin: 0 0 10px; display: flex; align-items: center; gap: 6px; }
 
 .day-detail-item { display: flex; gap: 8px; align-items: flex-start; padding: 6px 0; border-bottom: 1px solid #f5f5f7; }
 .day-detail-item:last-child { border-bottom: none; }
@@ -422,20 +422,20 @@ body {
 .schedule-cal-wrap { width: 100%; margin: 0 auto; max-width: min(var(--content-w), 68vh); overflow: hidden; }
 .attendance-cal-wrap { width: 100%; margin: 0 auto; max-width: min(var(--content-w), 62vh); overflow: hidden; transition: max-width 0.24s ease; }
 
-/* [v4] 헤더가 작은 기본 상태: 캘린더를 더 축소해서 한 화면에 통째로 들어오게 하고,
-   출석/결석/보강 숫자·범례·힌트는 숨긴다. 스크롤해서 헤더가 커지면 함께 나타난다. */
-body:not(.reg-expanded) .attendance-cal-wrap { max-width: min(var(--content-w), 43vh); }
-body:not(.reg-expanded) .attendance-calendar { padding: clamp(6px, min(3vw, 2.2vh), 18px); }
-body:not(.reg-expanded) .attendance-calendar .cal-month-label { font-size: 11px; margin: 2px 0 4px; }
-body:not(.reg-expanded) .cal-month-nav { margin-bottom: 6px; }
-body:not(.reg-expanded) .cal-summary,
-body:not(.reg-expanded) .attendance-calendar .cal-legend,
-body:not(.reg-expanded) .cal-hint { display: none; }
-/* 캘린더만 있는 화면에서도 살짝 스크롤해서 헤더를 펼 수 있도록 여지를 둔다 */
-body:not(.reg-expanded) .reg-detail-page { min-height: calc(100vh + 96px); }
+/* [v5] 헤더가 큰(확장) 상태: 캘린더를 더 축소해서 한 화면에 통째로 들어오게 하고,
+   출석/결석/보강 숫자·범례·힌트는 숨긴다. 스크롤해서 헤더가 작아지면 캘린더가 커지고 함께 나타난다. */
+body.reg-expanded .attendance-cal-wrap { max-width: min(var(--content-w), 43vh); }
+body.reg-expanded .attendance-calendar { padding: clamp(6px, min(3vw, 2.2vh), 18px); }
+body.reg-expanded .attendance-calendar .cal-month-label { font-size: 11px; margin: 2px 0 4px; }
+body.reg-expanded .cal-month-nav { margin-bottom: 6px; }
 body.reg-expanded .cal-summary,
 body.reg-expanded .attendance-calendar .cal-legend,
-body.reg-expanded .cal-hint { animation: calExtraFadeIn 0.26s ease both; }
+body.reg-expanded .cal-hint { display: none; }
+/* 캘린더만 있는 화면에서도 살짝 스크롤해서 헤더를 줄일 수 있도록 여지를 둔다 */
+body.reg-expanded .reg-detail-page { min-height: calc(100vh + 96px); }
+body:not(.reg-expanded) .cal-summary,
+body:not(.reg-expanded) .attendance-calendar .cal-legend,
+body:not(.reg-expanded) .cal-hint { animation: calExtraFadeIn 0.26s ease both; }
 @keyframes calExtraFadeIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
 .cal-summary { display: flex; gap: 8px; margin-top: 10px; }
 .cal-summary-item { flex: 1; background: #fff; border-radius: 12px; padding: 10px 6px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
@@ -791,19 +791,32 @@ function renderBookDetail() {
       </div>
       <div class="reg-tab-content">
         <h2>📖 학습기록</h2>
-        <div class="section-hint">이 교재와 관련된 학습기록을 최신순으로 보여줍니다</div>
-        ${sorted.length ? sorted.map((l) => `
-          <div class="log-card 학습">
-            <div class="log-icon"><span class="log-icon-emoji">📖</span><span class="log-icon-label">학습</span></div>
-            <div class="log-body">
-              <div class="log-title">${esc(l.range || l.book || "학습 기록")}</div>
-              <div class="log-context">${esc([`📅 ${l.date}`, l.unit ? `단원: ${l.unit}` : null].filter(Boolean).join(" · "))}</div>
-              ${l.note ? `<div class="log-note">${esc(l.note)}</div>` : ""}
-              ${l.photo ? `<img class="log-photo" src="${esc(l.photo)}" />` : ""}
-              ${buildFeedBodyHtml(l.body)}
+        <div class="section-hint">이 기재와 관단된 학습기록을 최신순으로 보여줍니다</div>
+        ${(() => {
+          const groups = []
+          sorted.forEach((l) => {
+            const last = groups[groups.length - 1]
+            if (last && last.date === l.date) { last.items.push(l) } else { groups.push({ date: l.date, items: [l] }) }
+          })
+          return groups.length ? groups.map((g) => `
+            <div class="log-date-group">
+              <div class="log-date-label">${esc(g.date)}</div>
+              ${g.items.map((l) => `
+                <div class="log-card 학습">
+                  <div class="log-icon"><span class="log-icon-emoji">📖</span><span class="log-icon-label">학습</span></div>
+                  <div class="log-body">
+                    <div class="log-title">${esc(l.range || l.book || "학습 기록")}</div>
+                    ${l.unit ? `<div class="log-context">${esc(`단원: ${l.unit}`)}</div>` : ""}
+                    ${l.note ? `<div class="log-note">${esc(l.note)}</div>` : ""}
+                    ${l.photo ? `<img class="log-photo" src="${esc(l.photo)}" />` : ""}
+                    ${buildFeedBodyHtml(l.body)}
+                  </div>
+                </div>
+              `).join("")}
             </div>
-          </div>
-        `).join("") : `<div class="empty">이 교재와 관련된 기록이 없습니다.</div>`}
+          `).join("") : `<div class="empty">이 기재와 관단된 기록이 없습니다.</div>`
+        })()}
+      </div>
       </div>
     </div>
   `
@@ -1510,7 +1523,7 @@ function renderDetail() {
   const tabBodies = {
     books: `
       <h2>📚 진도 교재</h2>
-      <div class="section-hint">진행상황별로 교재를 볼 수 있어요</div>
+      <div class="section-hint">진행상황별로 교재를 볼 수 있어���</div>
       <div class="seg-toggle">
         <button class="${bookStatusTab === "진행중" ? "active" : ""}" onclick="setBookStatusTab('진행중')">진행중인 교재</button>
         <button class="${bookStatusTab === "완료" ? "active" : ""}" onclick="setBookStatusTab('완료')">완료된 교재</button>
@@ -1554,7 +1567,7 @@ function renderDetail() {
         })
         return groups.length ? groups.map((g) => `
           <div class="log-date-group">
-            <div class="log-date-label">📅 ${esc(g.date)}</div>
+            <div class="log-date-label">${esc(g.date)}</div>
             ${g.items.map((l) => `
               <div class="log-card ${l.type}">
                 <div class="log-icon"><span class="log-icon-emoji">${l.icon}</span><span class="log-icon-label">${l.type}</span></div>
@@ -1615,10 +1628,11 @@ function detachRegScrollShrink() {
 }
 function attachRegScrollShrink() {
   detachRegScrollShrink()
-  // 최상단에서는 헤더를 작게 유지하고, 조금 스크롤하면 헤더를 키워
-  // 상세 정보를 보여준다. 히스테리시스로 경계에서 헤더가 떨리는 것을 방지.
-  const EXPAND_ON = 40
-  const EXPAND_OFF = 8
+  // 최상단(페이지 진입 직후)에서는 헤더를 크게(확장) 유지해 학생 정보를 보여준다.
+  // 스크롤을 내리면 헤더를 작게 줄여 sticky 바가 되고, 확보된 공간에 캘린더/부가정보를 동기화한다.
+  // 히스테리시스로 경계에서 헤더가 떨리는 것을 방지.
+  const SHRINK_ON = 40
+  const SHRINK_OFF = 8
   let ticking = false
   const apply = () => {
     ticking = false
@@ -1626,11 +1640,12 @@ function attachRegScrollShrink() {
     if (!bar) return
     const y = window.scrollY || document.documentElement.scrollTop || 0
     const expanded = bar.classList.contains("expanded")
-    if (!expanded && y > EXPAND_ON) bar.classList.add("expanded")
-    else if (expanded && y < EXPAND_OFF) bar.classList.remove("expanded")
+    if (expanded && y > SHRINK_ON) bar.classList.remove("expanded")
+    else if (!expanded && y < SHRINK_OFF) bar.classList.add("expanded")
     // 캘린더 크기/부가정보 CSS 가 반응하도록 body 에도 상태를 동기화한다.
     document.body.classList.toggle("reg-expanded", bar.classList.contains("expanded"))
   }
+
   regScrollHandler = () => {
     if (ticking) return
     ticking = true
