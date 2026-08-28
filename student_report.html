@@ -293,7 +293,7 @@ body {
 .badge.미완료 { background: #fdeaea; color: #e04b4b; }
 
 .book-cards { display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 6px; margin: 0 -2px; -webkit-overflow-scrolling: touch; }
-.book-card { position: relative; flex: 0 0 clamp(100px, 28vw, 150px); aspect-ratio: 3 / 4; border-radius: 12px; overflow: hidden; background: linear-gradient(135deg, #ece9fb, #f5f3ff); box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+.book-card { position: relative; flex: 0 0 clamp(150px, 44vw, 220px); aspect-ratio: 3 / 4; border-radius: 12px; overflow: hidden; background: linear-gradient(135deg, #ece9fb, #f5f3ff); box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
 .book-card .cover { position: absolute; inset: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 30px; }
 .book-card .cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .book-card .info-overlay { position: absolute; left: 0; right: 0; bottom: 0; padding: 22px 8px 8px; background: linear-gradient(to bottom, rgba(248,247,253,0) 0%, rgba(248,247,253,0.55) 32%, rgba(248,247,253,0.94) 56%, #f8f7fd 78%); }
@@ -471,6 +471,9 @@ body:not(.reg-expanded) .cal-hint { animation: calExtraFadeIn 0.26s ease both; }
 .feed-figure figcaption { font-size: 11px; color: #999; margin-top: 4px; text-align: center; }
 .feed-lightbox { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; padding: 16px; cursor: zoom-out; }
 .feed-lightbox img { max-width: 100%; max-height: 100%; border-radius: 8px; }
+.feed-video-wrap { margin-top: 2px; }
+.feed-video { width: 100%; max-height: 420px; border-radius: 12px; display: block; background: #000; }
+.feed-video-caption { font-size: 11px; color: #999; margin-top: 4px; text-align: center; }
 
 @media (max-height: 520px) {
   .schedule-section, .books-section, .attendance-section, .study-section, .tasks-section {
@@ -555,6 +558,9 @@ function normalizeFeedBody(rawBody) {
       if (b.type === "image" && b.url) {
         return { type: "image", url: String(b.url), caption: String(b.caption || "") }
       }
+      if (b.type === "video" && b.url) {
+        return { type: "video", url: String(b.url), caption: String(b.caption || "") }
+      }
       const t = String(b.text || "").trim()
       if (!t) return null
       return { type: "text", text: t, style: String(b.style || "") }
@@ -583,6 +589,10 @@ function buildFeedBodyHtml(body) {
       return
     }
     flushImages()
+    if (it.type === "video") {
+      parts.push(`<div class="feed-video-wrap"><video class="feed-video" src="${esc(it.url)}" controls playsinline preload="metadata"></video>${it.caption ? `<div class="feed-video-caption">${esc(it.caption)}</div>` : ""}</div>`)
+      return
+    }
     if (it.style === "heading") parts.push(`<div class="feed-heading">${esc(it.text)}</div>`)
     else if (it.style === "bullet") parts.push(`<div class="feed-bullet">${esc(it.text)}</div>`)
     else if (it.style === "quote") parts.push(`<div class="feed-quote">${esc(it.text)}</div>`)
