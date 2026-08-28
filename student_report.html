@@ -1625,34 +1625,14 @@ function detachRegScrollShrink() {
   }
   window.onscroll = null
   document.body.classList.remove("reg-expanded")
+  const bar = document.querySelector(".reg-header-bar")
+  if (bar) bar.classList.remove("expanded")
 }
 function attachRegScrollShrink() {
+  // 스크롤에 따라 헤더 큰기를 동적으로 바꾸는 방식은 태발/스크롤 감도도 문제가 있어 제거하고,
+  // 헤더를 직은 항상 작은(축소) 사이즈로 고정한다.
+  // 이에 맞춰 생달렉/보조정보도 "헤더 축소" 상태의 스타일(큰 생달렉 + 및몸로량 표시)로 고정된다.
   detachRegScrollShrink()
-  // 최상단(페이지 진입 직후)에서는 헤더를 크게(확장) 유지해 학생 정보를 보여준다.
-  // 스크롤을 내리면 헤더를 작게 줄여 sticky 바가 되고, 확보된 공간에 캘린더/부가정보를 동기화한다.
-  // 히스테리시스로 경계에서 헤더가 떨리는 것을 방지.
-  const SHRINK_ON = 40
-  const SHRINK_OFF = 8
-  let ticking = false
-  const apply = () => {
-    ticking = false
-    const bar = document.querySelector(".reg-header-bar")
-    if (!bar) return
-    const y = window.scrollY || document.documentElement.scrollTop || 0
-    const expanded = bar.classList.contains("expanded")
-    if (expanded && y > SHRINK_ON) bar.classList.remove("expanded")
-    else if (!expanded && y < SHRINK_OFF) bar.classList.add("expanded")
-    // 캘린더 크기/부가정보 CSS 가 반응하도록 body 에도 상태를 동기화한다.
-    document.body.classList.toggle("reg-expanded", bar.classList.contains("expanded"))
-  }
-
-  regScrollHandler = () => {
-    if (ticking) return
-    ticking = true
-    window.requestAnimationFrame(apply)
-  }
-  window.addEventListener("scroll", regScrollHandler, { passive: true })
-  apply()
 }
 function renderApp() {
   if (view === "detail") {
