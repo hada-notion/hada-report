@@ -46,14 +46,15 @@ body {
   top: 18px;
   right: 18px;
   z-index: 60;
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: rgba(255,255,255,0.25);
   backdrop-filter: blur(4px);
   border: none;
   color: #fff;
   font-size: 16px;
+  line-height: 1;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -193,13 +194,13 @@ body {
 /* ===== 등록 상세 - 뎁스2 스와이프 섹션 ===== */
 .reg-header-section { background: linear-gradient(160deg, #6c5ce7, #a29bfe 65%, #cbb9ff); color: #fff; text-align: center; }
 .reg-header-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-.reg-back-btn { flex-shrink: 0; background: rgba(255,255,255,0.22); color: #fff; border: none; width: 34px; height: 34px; border-radius: 50%; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: width 0.2s ease, height 0.2s ease, font-size 0.2s ease; }
-.reg-breadcrumb { display: none; flex: 1; min-width: 0; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; flex-wrap: wrap; text-align: left; }
-.reg-breadcrumb .crumb { cursor: pointer; opacity: 0.9; }
+.reg-back-btn { flex-shrink: 0; background: rgba(255,255,255,0.22); color: #fff; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 16px; font-weight: 600; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s ease; }
+.reg-breadcrumb { display: none; flex: 1; min-width: 0; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; line-height: 1; flex-wrap: nowrap; overflow: hidden; text-align: left; }
+.reg-breadcrumb .crumb { display: inline-flex; align-items: center; line-height: 1; cursor: pointer; opacity: 0.9; white-space: nowrap; }
 .reg-breadcrumb .crumb:hover { text-decoration: underline; }
-.reg-breadcrumb .crumb.current { font-weight: 800; opacity: 1; cursor: default; }
+.reg-breadcrumb .crumb.current { font-weight: 800; opacity: 1; cursor: default; overflow: hidden; text-overflow: ellipsis; }
 .reg-breadcrumb .crumb.current:hover { text-decoration: none; }
-.reg-breadcrumb .crumb-sep { opacity: 0.6; }
+.reg-breadcrumb .crumb-sep { display: inline-flex; align-items: center; line-height: 1; opacity: 0.6; flex-shrink: 0; }
 .reg-head-row { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 10px; }
 .reg-head-row.stacked { flex-direction: column; gap: 2px; }
 .reg-emoji { font-size: 22px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border-radius: 8px; overflow: hidden; flex-shrink: 0; }
@@ -218,7 +219,7 @@ body {
 
 /* ===== 등록 상세 - 뎁스2 하단 탭 방식 ===== */
 .reg-detail-page { min-height: 100vh; background: #f5f6f8; padding-bottom: 78px; -webkit-overflow-scrolling: touch; }
-.reg-header-bar { position: sticky; top: 0; z-index: 55; background: linear-gradient(160deg, #6c5ce7, #a29bfe 65%, #cbb9ff); color: #fff; text-align: center; padding: 12px 16px 14px; will-change: padding; }
+.reg-header-bar { position: sticky; top: 0; z-index: 55; background: linear-gradient(160deg, #6c5ce7, #a29bfe 65%, #cbb9ff); color: #fff; text-align: center; padding: 18px 18px 18px; will-change: padding; }
 .reg-tab-content { max-width: var(--content-w-wide); margin: 0 auto; padding: 18px clamp(4px, 3vw, 16px) 24px; }
 .reg-tab-content h2 { font-size: 17px; margin: 0 0 4px; color: #333; }
 .reg-tab-content .section-hint { font-size: 12px; color: #888; margin-bottom: 16px; }
@@ -232,13 +233,13 @@ body {
 .reg-header-bar { transition: padding 0.22s ease; }
 /* 기본 상태(최상단) = 작은 헤더. 뒤로가기 + 경로만 노출해서
    캘린더가 한 화면에 다 들어오게 한다. 스크롤하면 .expanded 가 붙어 커진다. */
-.reg-header-bar { padding: 8px 16px 8px; }
+.reg-header-bar { padding: 16px 18px 16px; }
 .reg-header-bar .reg-head-row, .reg-header-bar .reg-cover-wrap, .reg-header-bar .reg-sub-badges, .reg-header-bar .reg-period, .reg-header-bar .reg-divider { display: none; }
 .reg-header-bar .reg-breadcrumb { display: flex; }
-.reg-header-bar .reg-back-btn { width: 28px; height: 28px; font-size: 14px; }
+.reg-header-bar .reg-back-btn { width: 36px; height: 36px; font-size: 16px; }
 .reg-header-bar:not(.expanded) .reg-header-top { margin-bottom: 0; }
 /* 스크롤 내리면 헤더가 커지면서 상세 정보가 드러난다 */
-.reg-header-bar.expanded { padding: 12px 16px 16px; }
+.reg-header-bar.expanded { padding: 18px 18px 18px; }
 .reg-header-bar.expanded .reg-head-row { display: flex; }
 .reg-header-bar.expanded .reg-head-row.stacked { display: flex; flex-direction: column; }
 .reg-header-bar.expanded .reg-cover-wrap { display: block; }
@@ -246,7 +247,7 @@ body {
 .reg-header-bar.expanded .reg-period { display: block; }
 .reg-header-bar.expanded .reg-divider { display: block; }
 .reg-header-bar.expanded .reg-breadcrumb { display: none; }
-.reg-header-bar.expanded .reg-back-btn { width: 34px; height: 34px; font-size: 16px; }
+.reg-header-bar.expanded .reg-back-btn { width: 36px; height: 36px; font-size: 16px; }
 .cal-nav-right { display: flex; align-items: center; gap: 6px; }
 .cal-today-btn { background: #f0eefc; border: none; color: #6c5ce7; font-size: clamp(10px, 1.8vw, 12px); font-weight: 700; padding: 5px 10px; border-radius: 999px; cursor: pointer; }
 .cal-today-btn:active { background: #ece9ff; }
@@ -326,6 +327,7 @@ body {
 .log-icon { flex-shrink: 0; width: 44px; align-self: stretch; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
 .log-divider { border-top: 1px solid #f1f0f6; margin: 10px -16px 0; }
 .log-extra { padding: 10px 16px 0; margin: 0 -16px; }
+.log-extra .feed-body { margin-top: 0; padding-top: 0; border-top: none; }
 .log-icon-emoji { font-size: 15px; line-height: 1; height: 17px; width: 100%; display: flex; align-items: center; justify-content: center; }
 .log-icon-label { font-size: 9px; font-weight: 700; line-height: 1; height: 10px; width: 100%; display: flex; align-items: center; justify-content: center; letter-spacing: -0.2px; }
 .log-card.학습 .log-icon { background: #eaf2fc; color: #3f74b3; }
@@ -588,7 +590,7 @@ function buildFeedVideoHtml(vid) {
   return `<div class="feed-video">${inner}${vid.caption ? `<div class="feed-video-caption">${esc(vid.caption)}</div>` : ""}</div>`
 }
 
-// 피드 본문 렌더링: 글 + 사진을 인스타그램 피드처럼 보여준다.
+// 피드 본문 렌더링: 글 + 사진을 인스타그램 피드처럼 ���여준다.
 // 이미지 1장은 크게, 2장 이상은 그리드로 배치한다.
 function buildFeedBodyHtml(body) {
   const items = normalizeFeedBody(body)
@@ -1071,7 +1073,7 @@ function buildGradeChartHtml(grades) {
   const xStep = dates.length > 1 ? (width - padding * 2) / (dates.length - 1) : 0
   const scores = grades.map((g) => g.score)
   const rawMax = scores.length ? Math.max(...scores) : 100
-  // 표시 영역(카드) 높이에 여유가 있을수록 눈금을 촘촘하게, 좁을수록 성기게 잡습니다.
+  // 표시 영역(카드) 높이에 여유가 있��수록 눈금을 촘촘하게, 좁을수록 성기게 잡습니다.
   const targetTicks = rawMax > 0 && rawMax <= 60 ? 6 : 4
   const step = niceAxisStep(rawMax, targetTicks)
   const axisMax = Math.max(step, Math.ceil(rawMax / step) * step)
@@ -1104,7 +1106,7 @@ function renderGradesPage() {
         <h2>📊 성적정보</h2>
         <div class="view-toggle">
           <button class="${gradeView === "table" ? "active" : ""}" onclick="setGradeView('table')">표로 보기</button>
-          <button class="${gradeView === "chart" ? "active" : ""}" onclick="setGradeView('chart')">차트로 보기</button>
+          <button class="${gradeView === "chart" ? "active" : ""}" onclick="setGradeView('chart')">차트로 ���기</button>
         </div>
         ${gradeView === "table" ? buildGradeTableHtml(grades) : buildGradeChartHtml(grades)}
       </div>
@@ -1417,7 +1419,7 @@ function buildReportTabHtml(r) {
   const periodLabel = reportPeriod === "week" ? `${rangeStart} ~ ${rangeEnd}` : `${rangeStart.slice(0, 7)}`
   return `
     <h2>📊 보고서</h2>
-    <div class="section-hint">주간·월간 학습 리포트를 확인하세요</div>
+    <div class="section-hint">주간·월간 ���습 리포트를 확인하세요</div>
     <div class="seg-toggle">
       <button class="${reportPeriod === "week" ? "active" : ""}" onclick="setReportPeriod('week')">주간 보고서</button>
       <button class="${reportPeriod === "month" ? "active" : ""}" onclick="setReportPeriod('month')">월간 보고서</button>
