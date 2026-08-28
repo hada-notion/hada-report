@@ -440,6 +440,22 @@ body {
 .list-item .title .cal-dot { width: 8px; height: 8px; }
 .cal-event-list { margin-top: 12px; }
 
+/* ===== 학습기록 피드 (노션 페이지 본문 글 + 사진) ===== */
+.feed-body { margin-top: 10px; padding-top: 10px; border-top: 1px solid #f1f0f6; display: flex; flex-direction: column; gap: 8px; }
+.feed-para { font-size: 14px; line-height: 1.62; color: #3a3a3a; white-space: pre-wrap; word-break: break-word; }
+.feed-heading { font-size: 15px; font-weight: 800; color: #2b2b2b; margin-top: 2px; }
+.feed-bullet { font-size: 14px; line-height: 1.6; color: #3a3a3a; padding-left: 14px; position: relative; }
+.feed-bullet::before { content: ""; position: absolute; left: 3px; top: 9px; width: 4px; height: 4px; border-radius: 50%; background: #a29bfe; }
+.feed-quote { font-size: 14px; line-height: 1.6; color: #6c5ce7; background: #f7f5ff; border-left: 3px solid #a29bfe; border-radius: 0 10px 10px 0; padding: 9px 12px; }
+.feed-images { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-top: 2px; }
+.feed-images.single { grid-template-columns: 1fr; }
+.feed-figure { margin: 0; }
+.feed-img { width: 100%; height: 100%; max-height: 320px; object-fit: cover; border-radius: 12px; display: block; background: #f0f0f4; cursor: zoom-in; }
+.feed-images.single .feed-img { max-height: 420px; object-fit: contain; background: #fafafa; }
+.feed-figure figcaption { font-size: 11px; color: #999; margin-top: 4px; text-align: center; }
+.feed-lightbox { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; padding: 16px; cursor: zoom-out; }
+.feed-lightbox img { max-width: 100%; max-height: 100%; border-radius: 8px; }
+
 @media (max-height: 520px) {
   .schedule-section, .books-section, .attendance-section, .study-section, .tasks-section {
     padding-top: 6px !important;
@@ -513,6 +529,63 @@ function normalizeBookStatus(rawStatus) {
   if (s.includes("다음") || s.includes("예정") || s.includes("대기")) return "예정"
   return s
 }
+// 노션 학습기록 "페이지 본문"을 피드용 부록으로 정리한다.
+// Edge Function 이 body: [{ type: "text" | "image", text?, url?, caption? }] 로 내려준다.
+function normalizeFeedBody(rawBody) {
+  if (!Array.isArray(rawBody)) return []
+  return rawBody
+    .map((b) => {
+      if (!b) return null
+      if (b.type === "image" && b.url) {
+        return { type: "image", url: String(b.url), caption: String(b.caption || "") }
+      }
+      const t = String(b.text || "").trim()
+      if (!t) return null
+      return { type: "text", text: t, style: String(b.style || "") }
+    })
+    .filter(Boolean)
+}
+
+// 피드 본문 렌더링: 글 + 사진을 인스타그램 피드처럼 보여준다.
+// 이미지 1장은 크게, 2장 이상은 그리드로 배치한다.
+function buildFeedBodyHtml(body) {
+  const items = normalizeFeedBody(body)
+  if (!items.length) return ""
+  const parts = []
+  let imageBuffer = []
+  const flushImages = () => {
+    if (!imageBuffer.length) return
+    const cls = imageBuffer.length === 1 ? "feed-images single" : "feed-images"
+    parts.push(`<div class="${cls}">${imageBuffer
+      .map((img) => `<figure class="feed-figure"><img class="feed-img" src="${esc(img.url)}" loading="lazy" onclick="openFeedImage('${esc(img.url).replace(/'/g, "&#39;")}')" />${img.caption ? `<figcaption>${esc(img.caption)}</figcaption>` : ""}</figure>`)
+      .join("")}</div>`)
+    imageBuffer = []
+  }
+  items.forEach((it) => {
+    if (it.type === "image") {
+      imageBuffer.push(it)
+      return
+    }
+    flushImages()
+    if (it.style === "heading") parts.push(`<div class="feed-heading">${esc(it.text)}</div>`)
+    else if (it.style === "bullet") parts.push(`<div class="feed-bullet">${esc(it.text)}</div>`)
+    else if (it.style === "quote") parts.push(`<div class="feed-quote">${esc(it.text)}</div>`)
+    else parts.push(`<div class="feed-para">${esc(it.text)}</div>`)
+  })
+  flushImages()
+  return `<div class="feed-body">${parts.join("")}</div>`
+}
+
+// 피드 이미지 탭 → 전체화면 뷰어
+function openFeedImage(url) {
+  if (!url) return
+  const layer = document.createElement("div")
+  layer.className = "feed-lightbox"
+  layer.innerHTML = `<img src="${esc(url)}" />`
+  layer.onclick = () => layer.remove()
+  document.body.appendChild(layer)
+}
+
 const LEADING_EMOJI_RE = /^(\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*)\s*/u
 function splitClassNameEmoji(rawClassName) {
   const str = String(rawClassName || "").trim()
@@ -560,7 +633,7 @@ function mapReportToStudent(r) {
         books: (r.books || []).map((b) => ({ title: b.title || "", progress: b.progress ?? 0, status: normalizeBookStatus(b.status), cover: b.cover || "" })),
         attendance_summary: r.attendance_summary || { present: 0, absent: 0, makeup: 0 },
         attendance_rows: (r.attendance_rows || []).map((a) => ({ date: a.iso || a.date_iso || (typeof a.date === "string" && /^\d{4}-\d{2}-\d{2}/.test(a.date) ? a.date.slice(0, 10) : null), weekday: a.weekday || "", status: a.status || "" })),
-        study_logs: (r.study_logs || []).map((s) => ({ book: s.book || "", range: s.range || "", unit: s.unit || "", date: s.iso || null, note: s.note || "" })),
+        study_logs: (r.study_logs || []).map((s) => ({ book: s.book || "", range: s.range || "", unit: s.unit || "", date: s.iso || null, note: s.note || "", body: normalizeFeedBody(s.body) })),
         homework: (r.homework || []).map((h) => ({ title: h.title || "", due: h.due_iso || null, status: h.status || "머곱링" })),
         tests: (r.tests || []).map((t) => ({ title: t.title || "", date: t.iso || null, correct: t.correct ?? 0, total: t.total ?? 0 })),
         teacher_comments: (r.teacher_comments || []).map((c) => ({ text: c.text || "", date: c.iso || null, by: c.by || "" })),
@@ -711,6 +784,7 @@ function renderBookDetail() {
               <div class="log-context">${esc([`📅 ${l.date}`, l.unit ? `단원: ${l.unit}` : null].filter(Boolean).join(" · "))}</div>
               ${l.note ? `<div class="log-note">${esc(l.note)}</div>` : ""}
               ${l.photo ? `<img class="log-photo" src="${esc(l.photo)}" />` : ""}
+              ${buildFeedBodyHtml(l.body)}
             </div>
           </div>
         `).join("") : `<div class="empty">이 교재와 관련된 기록이 없습니다.</div>`}
@@ -1369,6 +1443,7 @@ function renderDailyReport() {
             <div class="log-row 학습">
               <div class="log-title-row"><div class="log-title">${esc(l.range || l.book || "학습 기록")}</div></div>
               <div class="log-context">${[l.book ? `📖 ${esc(l.book)}` : null, l.unit ? `단원: ${esc(l.unit)}` : null, l.note ? esc(l.note) : null].filter(Boolean).join(" · ")}</div>
+              ${buildFeedBodyHtml(l.body)}
             </div>
           `).join("") : '<div class="empty">이 날짜에 기록된 학습 내용이 없습니다.</div>'}
         </div>
@@ -1452,7 +1527,7 @@ function renderDetail() {
       <div class="section-hint">학습 · 과제 · 평가 기록을 최신순으로 보여줍니다</div>
       ${(() => {
         const items = []
-        studyLogs.forEach((l) => items.push({ type: "학습", icon: "📖", date: l.date, title: [l.book, l.range].filter(Boolean).join(" ") || "학습 기록", context: l.unit ? `단원: ${l.unit}` : "", note: l.note, photo: l.photo, book: l.book }))
+        studyLogs.forEach((l) => items.push({ type: "학습", icon: "📖", date: l.date, title: [l.book, l.range].filter(Boolean).join(" ") || "학습 기록", context: l.unit ? `단원: ${l.unit}` : "", note: l.note, photo: l.photo, body: l.body, book: l.book }))
         homework.forEach((h) => items.push({ type: "과제", icon: "📝", date: h.due, title: h.title, pill: h.status, book: null }))
         tests.forEach((t) => items.push({ type: "평가", icon: "📄", date: t.date, title: t.title, pill: `정답 ${t.correct ?? 0} / ${t.total ?? 0}`, book: null }))
         const sorted = items.slice().sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
@@ -1473,6 +1548,7 @@ function renderDetail() {
                   ${l.pill ? `<span class="log-pill">${esc(l.pill)}</span>` : ""}
                   ${l.note ? `<div class="log-note">${esc(l.note)}</div>` : ""}
                   ${l.photo ? `<img class="log-photo" src="${esc(l.photo)}" />` : ""}
+                  ${buildFeedBodyHtml(l.body)}
                 </div>
               </div>
             `).join("")}
