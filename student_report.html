@@ -479,8 +479,17 @@ function pickClassColorEmoji(seed) {
   }
   return CLASS_COLOR_EMOJIS[hash % CLASS_COLOR_EMOJIS.length]
 }
+const LEADING_EMOJI_RE = /^(\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*)\s*/u
+function splitClassNameEmoji(rawClassName) {
+  const str = String(rawClassName || "").trim()
+  const match = str.match(LEADING_EMOJI_RE)
+  if (match) {
+    return { emoji: match[1], name: str.slice(match[0].length).trim() }
+  }
+  return { emoji: "", name: str }
+}
 
-// 실제 Supabase RPC 응답(단일 등득 기준)을 앞단의 UI가 사용하는 STUDENT/registrations[] 형태로 부달부달변환합니다.
+// 실제 Supabase RPC 응답(단일 등득 기준)을 앞��의 UI가 사용하는 STUDENT/registrations[] 형태로 부달부달변환합니다.
 // (현재 Edge Function은 하나의 등득만 반환 — 형제/자매 다중등득 집계는 추후 지원)
 function mapReportToStudent(r) {
   return {
@@ -506,8 +515,8 @@ function mapReportToStudent(r) {
     registrations: [
       {
         token: r.access_token || "",
-        emoji: pickClassColorEmoji(r.class_name),
-        class_name: r.class_name || "",
+        emoji: splitClassNameEmoji(r.class_name).emoji || pickClassColorEmoji(splitClassNameEmoji(r.class_name).name),
+        class_name: splitClassNameEmoji(r.class_name).name || r.class_name || "",
         status: "수강중",
         start: null,
         end: null,
