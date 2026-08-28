@@ -643,8 +643,8 @@ function splitClassNameEmoji(rawClassName) {
   return { emoji: "", name: str }
 }
 
-// 실제 Supabase RPC 응답(단일 등득 기준)을 앞��의 UI가 사용하는 STUDENT/registrations[] 형태로 부달부달변환합니다.
-// (현재 Edge Function은 하나의 등득만 반환 — 형제/자매 다중등득 집계는 추후 지원)
+// 실제 Supabase RPC 응답(단일 등록 기준)을 앞단의 UI가 사용하는 STUDENT/registrations[] 형태로 변환합니다.
+// (현재 Edge Function은 하나의 등록만 반환 — 형제/자매 다중등록 집계는 추후 지원)
 function mapReportToStudent(r) {
   return {
     academy_name: "",
@@ -775,7 +775,7 @@ function openRegistration(token) {
 }
 
 function openBookStudy(title) {
-  selectedBookTitle = title
+  selectedBookTitle = normBookTitle(title)
   view = "book"
   renderApp()
   window.scrollTo({ top: 0 })
@@ -786,19 +786,23 @@ function closeBookDetail() {
   renderApp()
   window.scrollTo({ top: 0 })
 }
+function normBookTitle(v) {
+  return String(v || "").trim()
+}
 function renderBookDetail() {
   const r = currentReg()
   if (!r || !selectedBookTitle) return renderDetail()
   const books = r.books || []
-  const book = books.find((b) => b.title === selectedBookTitle) || {}
+  const targetTitle = normBookTitle(selectedBookTitle)
+  const book = books.find((b) => normBookTitle(b.title) === targetTitle) || {}
   const items = []
-  ;((r.study_logs) || []).filter((l) => l.book === selectedBookTitle).forEach((l) => items.push({
+  ;((r.study_logs) || []).filter((l) => normBookTitle(l.book) === targetTitle).forEach((l) => items.push({
     type: "학습", icon: "📖", date: l.date, book: l.book, range: l.range, unit: l.unit, note: l.note, pill: null, photo: l.photo, body: l.body,
   }))
-  ;((r.homework) || []).filter((h) => h.book === selectedBookTitle).forEach((h) => items.push({
+  ;((r.homework) || []).filter((h) => normBookTitle(h.book) === targetTitle).forEach((h) => items.push({
     type: "과제", icon: "📝", date: h.date || h.due, book: h.book, range: h.range, unit: h.unit, note: h.note, pill: h.status, photo: null, body: null,
   }))
-  ;((r.tests) || []).filter((t) => t.book === selectedBookTitle).forEach((t) => items.push({
+  ;((r.tests) || []).filter((t) => normBookTitle(t.book) === targetTitle).forEach((t) => items.push({
     type: "평가", icon: "📄", date: t.date, book: t.book, range: t.range, unit: t.unit, note: t.note, pill: `정답 ${t.correct ?? 0} / ${t.total ?? 0}`, photo: null, body: null,
   }))
   const sorted = items.slice().sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
@@ -976,7 +980,7 @@ function normalizeCategoryName(category) {
 }
 const NOTICE_CATEGORY_COLORS = { "휴원": "#9b9a97", "학원 일정": "#337ea9", "학사 일정": "#e03e3e", "할일": "#448361" }
 const NOTICE_CATEGORY_EMOJI = { "휴원": "💤", "학원 일정": "📆", "학사 일정": "🏫", "할일": "✅" }
-// ���일(✅)은 강사/직원용 내부 항목이므로 학생에게는 절대 노출하지 않는다.
+// 할일(✅)은 강사/직원용 내부 항목이므로 학생에게는 절대 노출하지 않는다.
 function getStudentVisibleNotices() {
   return STUDENT.notices.filter((n) => normalizeCategoryName(n.category) !== "할일")
 }
@@ -1546,7 +1550,7 @@ function renderDailyReport() {
         </div>
 
         <div class="card">
-          <h2>��� 선생님 코멘트</h2>
+          <h2>💬 선생님 코멘트</h2>
           ${comment ? `<div class="list-item"><div>${esc(comment.text)}</div><div class="meta">${esc(comment.date)} · ${esc(comment.by)}</div></div>` : '<div class="empty">등록된 코멘트가 없습니다.</div>'}
         </div>
       </div>
@@ -1572,7 +1576,7 @@ function renderDetail() {
   const tabBodies = {
     books: `
       <h2>📚 진도 교재</h2>
-      <div class="section-hint">진행상황별로 교재를 볼 수 있어���</div>
+      <div class="section-hint">진행상황별로 교재를 볼 수 있어요</div>
       <div class="seg-toggle">
         <button class="${bookStatusTab === "진행중" ? "active" : ""}" onclick="setBookStatusTab('진행중')">진행중인 교재</button>
         <button class="${bookStatusTab === "완료" ? "active" : ""}" onclick="setBookStatusTab('완료')">완료된 교재</button>
@@ -1601,7 +1605,7 @@ function renderDetail() {
       <div class="attendance-cal-wrap" id="reg-cal-area">${buildRegCalendarHtml(r, calMode)}</div>
     `,
     study: `
-      <h2>�� 진도 학습기록 타임라인</h2>
+      <h2>📖 진도 학습기록 타임라인</h2>
       <div class="section-hint">학습 · 과제 · 평가 기록을 최신순으로 보여줍니다</div>
       ${(() => {
         const items = []
