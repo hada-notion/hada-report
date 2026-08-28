@@ -293,7 +293,7 @@ body {
 .badge.미완료 { background: #fdeaea; color: #e04b4b; }
 
 .book-cards { display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 6px; margin: 0 -2px; -webkit-overflow-scrolling: touch; }
-.book-card { position: relative; flex: 0 0 clamp(150px, 44vw, 220px); aspect-ratio: 3 / 4; border-radius: 12px; overflow: hidden; background: linear-gradient(135deg, #ece9fb, #f5f3ff); box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+.book-card { position: relative; flex: 0 0 clamp(100px, 28vw, 150px); aspect-ratio: 3 / 4; border-radius: 12px; overflow: hidden; background: linear-gradient(135deg, #ece9fb, #f5f3ff); box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
 .book-card .cover { position: absolute; inset: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 30px; }
 .book-card .cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .book-card .info-overlay { position: absolute; left: 0; right: 0; bottom: 0; padding: 22px 8px 8px; background: linear-gradient(to bottom, rgba(248,247,253,0) 0%, rgba(248,247,253,0.55) 32%, rgba(248,247,253,0.94) 56%, #f8f7fd 78%); }
@@ -319,10 +319,13 @@ body {
 .cal-hint { font-size: 11px; color: #bbb; text-align: center; margin-top: 10px; }
 
 /* 학습기록 카드 공통 스타일 (학습/과제/평가 공통 사용) */
-.log-card { display: flex; gap: 12px; align-items: flex-start; background: #fff; border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.log-card { background: #fff; border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
 .log-row { display: flex; flex-direction: column; margin-bottom: 12px; }
 .log-row:last-child { margin-bottom: 0; }
-.log-icon { flex-shrink: 0; width: 44px; height: 44px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.log-top { display: flex; gap: 12px; align-items: stretch; }
+.log-icon { flex-shrink: 0; width: 44px; align-self: stretch; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.log-divider { border-top: 1px solid #f1f0f6; margin: 10px -16px 0; }
+.log-extra { padding: 10px 16px 0; margin: 0 -16px; }
 .log-icon-emoji { font-size: 15px; line-height: 1; height: 17px; width: 100%; display: flex; align-items: center; justify-content: center; }
 .log-icon-label { font-size: 9px; font-weight: 700; line-height: 1; height: 10px; width: 100%; display: flex; align-items: center; justify-content: center; letter-spacing: -0.2px; }
 .log-card.학습 .log-icon { background: #eaf2fc; color: #3f74b3; }
@@ -471,9 +474,6 @@ body:not(.reg-expanded) .cal-hint { animation: calExtraFadeIn 0.26s ease both; }
 .feed-figure figcaption { font-size: 11px; color: #999; margin-top: 4px; text-align: center; }
 .feed-lightbox { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; padding: 16px; cursor: zoom-out; }
 .feed-lightbox img { max-width: 100%; max-height: 100%; border-radius: 8px; }
-.feed-video-wrap { margin-top: 2px; }
-.feed-video { width: 100%; max-height: 420px; border-radius: 12px; display: block; background: #000; }
-.feed-video-caption { font-size: 11px; color: #999; margin-top: 4px; text-align: center; }
 
 @media (max-height: 520px) {
   .schedule-section, .books-section, .attendance-section, .study-section, .tasks-section {
@@ -558,9 +558,6 @@ function normalizeFeedBody(rawBody) {
       if (b.type === "image" && b.url) {
         return { type: "image", url: String(b.url), caption: String(b.caption || "") }
       }
-      if (b.type === "video" && b.url) {
-        return { type: "video", url: String(b.url), caption: String(b.caption || "") }
-      }
       const t = String(b.text || "").trim()
       if (!t) return null
       return { type: "text", text: t, style: String(b.style || "") }
@@ -589,10 +586,6 @@ function buildFeedBodyHtml(body) {
       return
     }
     flushImages()
-    if (it.type === "video") {
-      parts.push(`<div class="feed-video-wrap"><video class="feed-video" src="${esc(it.url)}" controls playsinline preload="metadata"></video>${it.caption ? `<div class="feed-video-caption">${esc(it.caption)}</div>` : ""}</div>`)
-      return
-    }
     if (it.style === "heading") parts.push(`<div class="feed-heading">${esc(it.text)}</div>`)
     else if (it.style === "bullet") parts.push(`<div class="feed-bullet">${esc(it.text)}</div>`)
     else if (it.style === "quote") parts.push(`<div class="feed-quote">${esc(it.text)}</div>`)
@@ -622,7 +615,7 @@ function splitClassNameEmoji(rawClassName) {
   return { emoji: "", name: str }
 }
 
-// 실제 Supabase RPC 응답(단일 등록 기준)을 앞단 UI가 사용하는 STUDENT/registrations[] 형태로 변환합니다.
+// 실제 Supabase RPC 응답(단일 등득 기준)을 앞��의 UI가 사용하는 STUDENT/registrations[] 형태로 부달부달변환합니다.
 // (현재 Edge Function은 하나의 등득만 반환 — 형제/자매 다중등득 집계는 추후 지원)
 function mapReportToStudent(r) {
   return {
@@ -770,8 +763,17 @@ function renderBookDetail() {
   if (!r || !selectedBookTitle) return renderDetail()
   const books = r.books || []
   const book = books.find((b) => b.title === selectedBookTitle) || {}
-  const logs = ((r.study_logs) || []).filter((l) => l.book === selectedBookTitle)
-  const sorted = logs.slice().sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
+  const items = []
+  ;((r.study_logs) || []).filter((l) => l.book === selectedBookTitle).forEach((l) => items.push({
+    type: "학습", icon: "📖", date: l.date, title: [l.book, l.range].filter(Boolean).join(" · ") || "학습 기록", context: l.unit ? `단원: ${l.unit}` : "", note: l.note, pill: null, photo: l.photo, body: l.body,
+  }))
+  ;((r.homework) || []).filter((h) => h.book === selectedBookTitle).forEach((h) => items.push({
+    type: "과제", icon: "📝", date: h.date || h.due, title: [h.book, h.range].filter(Boolean).join(" · ") || h.title, context: h.unit ? `단원: ${h.unit}` : "", note: h.note, pill: h.status, photo: null, body: null,
+  }))
+  ;((r.tests) || []).filter((t) => t.book === selectedBookTitle).forEach((t) => items.push({
+    type: "평가", icon: "📄", date: t.date, title: [t.book, t.range].filter(Boolean).join(" · ") || t.title, context: t.unit ? `단원: ${t.unit}` : "", note: t.note, pill: `정답 ${t.correct ?? 0} / ${t.total ?? 0}`, photo: null, body: null,
+  }))
+  const sorted = items.slice().sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
   return `
     <div class="reg-detail-page">
       <div class="reg-header-bar">
@@ -801,7 +803,7 @@ function renderBookDetail() {
       </div>
       <div class="reg-tab-content">
         <h2>📖 학습기록</h2>
-        <div class="section-hint">이 기재와 관단된 학습기록을 최신순으로 보여줍니다</div>
+        <div class="section-hint">이 교재와 관련된 학습 · 과제 · 평가 기록을 최신순으로 보여줍니다</div>
         ${(() => {
           const groups = []
           sorted.forEach((l) => {
@@ -812,19 +814,23 @@ function renderBookDetail() {
             <div class="log-date-group">
               <div class="log-date-label">${esc(g.date)}</div>
               ${g.items.map((l) => `
-                <div class="log-card 학습">
-                  <div class="log-icon"><span class="log-icon-emoji">📖</span><span class="log-icon-label">학습</span></div>
-                  <div class="log-body">
-                    <div class="log-title">${esc(l.range || l.book || "학습 기록")}</div>
-                    ${l.unit ? `<div class="log-context">${esc(`단원: ${l.unit}`)}</div>` : ""}
-                    ${l.note ? `<div class="log-note">${esc(l.note)}</div>` : ""}
-                    ${l.photo ? `<img class="log-photo" src="${esc(l.photo)}" />` : ""}
-                    ${buildFeedBodyHtml(l.body)}
+                <div class="log-card ${l.type}">
+                  <div class="log-top">
+                    <div class="log-icon"><span class="log-icon-emoji">${l.icon}</span><span class="log-icon-label">${l.type}</span></div>
+                    <div class="log-body">
+                      <div class="log-title-row">
+                        <div class="log-title">${esc(l.title)}</div>
+                        ${l.pill ? `<span class="log-pill">${esc(l.pill)}</span>` : ""}
+                      </div>
+                      ${l.context ? `<div class="log-context">${esc(l.context)}</div>` : ""}
+                      ${l.note ? `<div class="log-note">${esc(l.note)}</div>` : ""}
+                    </div>
                   </div>
+                  ${(l.photo || (l.body && buildFeedBodyHtml(l.body))) ? `<div class="log-divider"></div><div class="log-extra">${l.photo ? `<img class="log-photo" src="${esc(l.photo)}" />` : ""}${buildFeedBodyHtml(l.body)}</div>` : ""}
                 </div>
               `).join("")}
             </div>
-          `).join("") : `<div class="empty">이 기재와 관단된 기록이 없습니다.</div>`
+          `).join("") : `<div class="empty">이 교재와 관련된 기록이 없습니다.</div>`
         })()}
       </div>
       </div>
@@ -1507,7 +1513,7 @@ function renderDailyReport() {
         </div>
 
         <div class="card">
-          <h2>💬 선생님 코맘트</h2>
+          <h2>��� 선생님 코멘트</h2>
           ${comment ? `<div class="list-item"><div>${esc(comment.text)}</div><div class="meta">${esc(comment.date)} · ${esc(comment.by)}</div></div>` : '<div class="empty">등록된 코멘트가 없습니다.</div>'}
         </div>
       </div>
@@ -1533,7 +1539,7 @@ function renderDetail() {
   const tabBodies = {
     books: `
       <h2>📚 진도 교재</h2>
-      <div class="section-hint">진행상황별로 교재를 뱌 수 있어요</div>
+      <div class="section-hint">진행상황별로 교재를 볼 수 있어���</div>
       <div class="seg-toggle">
         <button class="${bookStatusTab === "진행중" ? "active" : ""}" onclick="setBookStatusTab('진행중')">진행중인 교재</button>
         <button class="${bookStatusTab === "완료" ? "active" : ""}" onclick="setBookStatusTab('완료')">완료된 교재</button>
@@ -1566,9 +1572,9 @@ function renderDetail() {
       <div class="section-hint">학습 · 과제 · 평가 기록을 최신순으로 보여줍니다</div>
       ${(() => {
         const items = []
-        studyLogs.forEach((l) => items.push({ type: "학습", icon: "📖", date: l.date, title: [l.book, l.range].filter(Boolean).join(" ") || "학습 기록", context: l.unit ? `단원: ${l.unit}` : "", note: l.note, photo: l.photo, body: l.body, book: l.book }))
-        homework.forEach((h) => items.push({ type: "과제", icon: "📝", date: h.due, title: h.title, pill: h.status, book: null }))
-        tests.forEach((t) => items.push({ type: "평가", icon: "📄", date: t.date, title: t.title, pill: `정답 ${t.correct ?? 0} / ${t.total ?? 0}`, book: null }))
+        studyLogs.forEach((l) => items.push({ type: "학습", icon: "📖", date: l.date, title: [l.book, l.range].filter(Boolean).join(" · ") || "학습 기록", context: l.unit ? `단원: ${l.unit}` : "", note: l.note, pill: null, photo: l.photo, body: l.body, book: l.book }))
+        homework.forEach((h) => items.push({ type: "과제", icon: "📝", date: h.date || h.due, title: [h.book, h.range].filter(Boolean).join(" · ") || h.title, context: h.unit ? `단원: ${h.unit}` : "", note: h.note, pill: h.status, photo: null, body: null, book: h.book }))
+        tests.forEach((t) => items.push({ type: "평가", icon: "📄", date: t.date, title: [t.book, t.range].filter(Boolean).join(" · ") || t.title, context: t.unit ? `단원: ${t.unit}` : "", note: t.note, pill: `정답 ${t.correct ?? 0} / ${t.total ?? 0}`, photo: null, body: null, book: t.book }))
         const sorted = items.slice().sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
         const groups = []
         sorted.forEach((l) => {
@@ -1580,15 +1586,18 @@ function renderDetail() {
             <div class="log-date-label">${esc(g.date)}</div>
             ${g.items.map((l) => `
               <div class="log-card ${l.type}">
-                <div class="log-icon"><span class="log-icon-emoji">${l.icon}</span><span class="log-icon-label">${l.type}</span></div>
-                <div class="log-body">
-                  <div class="log-title">${esc(l.title)}</div>
-                  ${l.context ? `<div class="log-context">${esc(l.context)}</div>` : ""}
-                  ${l.pill ? `<span class="log-pill">${esc(l.pill)}</span>` : ""}
-                  ${l.note ? `<div class="log-note">${esc(l.note)}</div>` : ""}
-                  ${l.photo ? `<img class="log-photo" src="${esc(l.photo)}" />` : ""}
-                  ${buildFeedBodyHtml(l.body)}
+                <div class="log-top">
+                  <div class="log-icon"><span class="log-icon-emoji">${l.icon}</span><span class="log-icon-label">${l.type}</span></div>
+                  <div class="log-body">
+                    <div class="log-title-row">
+                      <div class="log-title">${esc(l.title)}</div>
+                      ${l.pill ? `<span class="log-pill">${esc(l.pill)}</span>` : ""}
+                    </div>
+                    ${l.context ? `<div class="log-context">${esc(l.context)}</div>` : ""}
+                    ${l.note ? `<div class="log-note">${esc(l.note)}</div>` : ""}
+                  </div>
                 </div>
+                ${(l.photo || (l.body && buildFeedBodyHtml(l.body))) ? `<div class="log-divider"></div><div class="log-extra">${l.photo ? `<img class="log-photo" src="${esc(l.photo)}" />` : ""}${buildFeedBodyHtml(l.body)}</div>` : ""}
               </div>
             `).join("")}
           </div>
