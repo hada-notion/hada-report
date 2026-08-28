@@ -781,7 +781,7 @@ function buildScheduleCalendarHtml() {
   const startWeekday = new Date(y, mo - 1, 1).getDay()
   const daysInMonth = new Date(y, mo, 0).getDate()
   const byDay = {}
-  notices.filter((n) => n.date.startsWith(monthKey)).forEach((n) => {
+  notices.filter((n) => n.date && n.date.startsWith(monthKey)).forEach((n) => {
     const d = Number(n.date.slice(8, 10))
     byDay[d] = byDay[d] || []
     byDay[d].push(n)
@@ -864,7 +864,7 @@ function buildGradeChartHtml(grades) {
   const yFor = (score) => height - padding - (score / axisMax) * (height - padding * 2)
   const xFor = (date) => padding + dates.indexOf(date) * xStep
   const lines = subjects.map((subj) => {
-    const pts = grades.filter((g) => g.subject === subj).sort((a, b) => a.date.localeCompare(b.date))
+    const pts = grades.filter((g) => g.subject === subj).sort((a, b) => (a.date || "").localeCompare(b.date || ""))
     const path = pts.map((p) => `${xFor(p.date)},${yFor(p.score)}`).join(" ")
     const color = SUBJECT_COLORS[subj] || "#999"
     const dots = pts.map((p) => `<circle cx="${xFor(p.date)}" cy="${yFor(p.score)}" r="3.5" fill="${color}" />`).join("")
@@ -1041,11 +1041,11 @@ function buildRegCalendarHtml(r, mode) {
   const byDay = {}
   if (mode === "attendance") {
     (r.attendance_rows || []).forEach((a) => {
-      if (a.date.slice(0, 7) === monthKey) byDay[Number(a.date.slice(8, 10))] = esc(a.status)
+      if (a.date && a.date.slice(0, 7) === monthKey) byDay[Number(a.date.slice(8, 10))] = esc(a.status)
     })
   } else {
     (r.homework || []).forEach((h) => {
-      if (h.due.slice(0, 7) === monthKey) byDay[Number(h.due.slice(8, 10))] = h.status === "완료" ? "완료" : "미완료"
+      if (h.due && h.due.slice(0, 7) === monthKey) byDay[Number(h.due.slice(8, 10))] = h.status === "완료" ? "완료" : "미완료"
     })
   }
   const dowLabels = ["일", "월", "화", "수", "목", "금", "토"]
@@ -1176,7 +1176,7 @@ function buildReportTabHtml(r) {
   const comments = r.teacher_comments || []
   const { rangeStart, rangeEnd } = reportRange()
   const attendanceRows = (r.attendance_rows || []).filter((a) => a.date >= rangeStart && a.date <= rangeEnd)
-  const homeworkItems = homework.filter((h) => h.due >= rangeStart && h.due <= rangeEnd)
+  const homeworkItems = homework.filter((h) => h.due && h.due >= rangeStart && h.due <= rangeEnd)
   const testItems = tests.filter((t) => t.date >= rangeStart && t.date <= rangeEnd)
   const presentCount = attendanceRows.filter((a) => a.status !== "결석").length
   const attRate = attendanceRows.length ? Math.round((presentCount / attendanceRows.length) * 100) : 0
@@ -1225,12 +1225,12 @@ function formatDateLabel(date) {
 }
 
 function findNextHomework(r, date) {
-  const upcoming = (r.homework || []).filter((h) => h.due >= date).sort((a, b) => a.due.localeCompare(b.due))
+  const upcoming = (r.homework || []).filter((h) => h.due && h.due >= date).sort((a, b) => (a.due || "").localeCompare(b.due || ""))
   return upcoming[0] || null
 }
 
 function findLatestComment(r, date) {
-  const comments = (r.teacher_comments || []).filter((c) => c.date <= date).sort((a, b) => b.date.localeCompare(a.date))
+  const comments = (r.teacher_comments || []).filter((c) => c.date && c.date <= date).sort((a, b) => (b.date || "").localeCompare(a.date || ""))
   return comments[0] || (r.teacher_comments || [])[0] || null
 }
 
@@ -1242,7 +1242,7 @@ function renderDailyReport() {
   const attendanceRow = (r.attendance_rows || []).find((a) => a.date === date)
   const attendanceStatus = attendanceRow ? attendanceRow.status : "기록 없음"
 
-  const dueHomeworkToday = (r.homework || []).filter((h) => h.due === date)
+  const dueHomeworkToday = (r.homework || []).filter((h) => h.due && h.due === date)
 
   const todaysLogs = (r.study_logs || []).filter((l) => l.date === date)
   const nextHomework = findNextHomework(r, date)
