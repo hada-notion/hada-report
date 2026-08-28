@@ -319,10 +319,13 @@ body {
 .cal-hint { font-size: 11px; color: #bbb; text-align: center; margin-top: 10px; }
 
 /* 학습기록 카드 공통 스타일 (학습/과제/평가 공통 사용) */
-.log-card { display: flex; gap: 12px; align-items: flex-start; background: #fff; border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.log-card { background: #fff; border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
 .log-row { display: flex; flex-direction: column; margin-bottom: 12px; }
 .log-row:last-child { margin-bottom: 0; }
-.log-icon { flex-shrink: 0; width: 44px; height: 44px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.log-top { display: flex; gap: 12px; align-items: stretch; }
+.log-icon { flex-shrink: 0; width: 44px; align-self: stretch; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.log-divider { border-top: 1px solid #f1f0f6; margin: 10px -16px 0; }
+.log-extra { padding: 10px 16px 0; margin: 0 -16px; }
 .log-icon-emoji { font-size: 15px; line-height: 1; height: 17px; width: 100%; display: flex; align-items: center; justify-content: center; }
 .log-icon-label { font-size: 9px; font-weight: 700; line-height: 1; height: 10px; width: 100%; display: flex; align-items: center; justify-content: center; letter-spacing: -0.2px; }
 .log-card.학습 .log-icon { background: #eaf2fc; color: #3f74b3; }
@@ -840,6 +843,7 @@ function renderBookDetail() {
               <div class="log-date-label">${esc(g.date)}</div>
               ${g.items.map((l) => `
                 <div class="log-card ${l.type}">
+                  <div class="log-top">
                   <div class="log-icon"><span class="log-icon-emoji">${l.icon}</span><span class="log-icon-label">${l.type}</span></div>
                   <div class="log-body">
                     <div class="log-title-row">
@@ -848,9 +852,9 @@ function renderBookDetail() {
                     </div>
                     ${l.unit ? `<div class="log-context">${esc(`단원: ${l.unit}`)}</div>` : ""}
                     ${l.note ? `<div class="log-note">${esc(l.note)}</div>` : ""}
-                    ${l.photo ? `<img class="log-photo" src="${esc(l.photo)}" />` : ""}
-                    ${buildFeedBodyHtml(l.body)}
                   </div>
+                </div>
+                ${(l.photo || (l.body && buildFeedBodyHtml(l.body))) ? `<div class="log-divider"></div><div class="log-extra">${l.photo ? `<img class="log-photo" src="${esc(l.photo)}" />` : ""}${buildFeedBodyHtml(l.body)}</div>` : ""}
                 </div>
               `).join("")}
             </div>
@@ -1542,7 +1546,7 @@ function renderDailyReport() {
         </div>
 
         <div class="card">
-          <h2>💬 선생님 코멘트</h2>
+          <h2>��� 선생님 코멘트</h2>
           ${comment ? `<div class="list-item"><div>${esc(comment.text)}</div><div class="meta">${esc(comment.date)} · ${esc(comment.by)}</div></div>` : '<div class="empty">등록된 코멘트가 없습니다.</div>'}
         </div>
       </div>
@@ -1615,17 +1619,18 @@ function renderDetail() {
             <div class="log-date-label">${esc(g.date)}</div>
             ${g.items.map((l) => `
               <div class="log-card ${l.type}">
-                <div class="log-icon"><span class="log-icon-emoji">${l.icon}</span><span class="log-icon-label">${l.type}</span></div>
-                <div class="log-body">
-                  <div class="log-title-row">
-                    <div class="log-title">${esc(l.title)}</div>
-                    ${l.pill ? `<span class="log-pill">${esc(l.pill)}</span>` : ""}
+                <div class="log-top">
+                  <div class="log-icon"><span class="log-icon-emoji">${l.icon}</span><span class="log-icon-label">${l.type}</span></div>
+                  <div class="log-body">
+                    <div class="log-title-row">
+                      <div class="log-title">${esc(l.title)}</div>
+                      ${l.pill ? `<span class="log-pill">${esc(l.pill)}</span>` : ""}
+                    </div>
+                    ${l.context ? `<div class="log-context">${esc(l.context)}</div>` : ""}
+                    ${l.note ? `<div class="log-note">${esc(l.note)}</div>` : ""}
                   </div>
-                  ${l.context ? `<div class="log-context">${esc(l.context)}</div>` : ""}
-                  ${l.note ? `<div class="log-note">${esc(l.note)}</div>` : ""}
-                  ${l.photo ? `<img class="log-photo" src="${esc(l.photo)}" />` : ""}
-                  ${buildFeedBodyHtml(l.body)}
                 </div>
+                ${(l.photo || (l.body && buildFeedBodyHtml(l.body))) ? `<div class="log-divider"></div><div class="log-extra">${l.photo ? `<img class="log-photo" src="${esc(l.photo)}" />` : ""}${buildFeedBodyHtml(l.body)}</div>` : ""}
               </div>
             `).join("")}
           </div>
