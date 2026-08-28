@@ -230,10 +230,23 @@ body {
 .reg-tab-btn .tab-icon { font-size: 19px; }
 .reg-tab-btn.active { color: #6c5ce7; background: #f5f3ff; }
 .reg-header-bar { transition: padding 0.22s ease; }
-.reg-header-bar.shrink { padding: 8px 16px 8px; }
-.reg-header-bar.shrink .reg-head-row, .reg-header-bar.shrink .reg-cover-wrap, .reg-header-bar.shrink .reg-sub-badges, .reg-header-bar.shrink .reg-period, .reg-header-bar.shrink .reg-divider { display: none; }
-.reg-header-bar.shrink .reg-breadcrumb { display: flex; }
-.reg-header-bar.shrink .reg-back-btn { width: 28px; height: 28px; font-size: 14px; }
+/* 기본 상태(최상단) = 작은 헤더. 뒤로가기 + 경로만 노출해서
+   캘린더가 한 화면에 다 들어오게 한다. 스크롤하면 .expanded 가 붙어 커진다. */
+.reg-header-bar { padding: 8px 16px 8px; }
+.reg-header-bar .reg-head-row, .reg-header-bar .reg-cover-wrap, .reg-header-bar .reg-sub-badges, .reg-header-bar .reg-period, .reg-header-bar .reg-divider { display: none; }
+.reg-header-bar .reg-breadcrumb { display: flex; }
+.reg-header-bar .reg-back-btn { width: 28px; height: 28px; font-size: 14px; }
+.reg-header-bar:not(.expanded) .reg-header-top { margin-bottom: 0; }
+/* 스크롤 내리면 헤더가 커지면서 상세 정보가 드러난다 */
+.reg-header-bar.expanded { padding: 12px 16px 16px; }
+.reg-header-bar.expanded .reg-head-row { display: flex; }
+.reg-header-bar.expanded .reg-head-row.stacked { display: flex; flex-direction: column; }
+.reg-header-bar.expanded .reg-cover-wrap { display: block; }
+.reg-header-bar.expanded .reg-sub-badges { display: flex; }
+.reg-header-bar.expanded .reg-period { display: block; }
+.reg-header-bar.expanded .reg-divider { display: block; }
+.reg-header-bar.expanded .reg-breadcrumb { display: none; }
+.reg-header-bar.expanded .reg-back-btn { width: 34px; height: 34px; font-size: 16px; }
 .cal-nav-right { display: flex; align-items: center; gap: 6px; }
 .cal-today-btn { background: #f0eefc; border: none; color: #6c5ce7; font-size: clamp(10px, 1.8vw, 12px); font-weight: 700; padding: 5px 10px; border-radius: 999px; cursor: pointer; }
 .cal-today-btn:active { background: #ece9ff; }
@@ -407,7 +420,7 @@ body {
 .cal-nav-btn { background: #f0eefc; border: none; width: clamp(28px, 4vw, 40px); height: clamp(28px, 4vw, 40px); border-radius: 50%; color: #6c5ce7; font-size: clamp(15px, 2.4vw, 20px); font-weight: 700; cursor: pointer; }
 .cal-nav-btn:disabled { opacity: 0.3; cursor: default; }
 .schedule-cal-wrap { width: 100%; margin: 0 auto; max-width: min(var(--content-w), 68vh); overflow: hidden; }
-.attendance-cal-wrap { width: 100%; margin: 0 auto; max-width: min(var(--content-w), 56vh); overflow: hidden; }
+.attendance-cal-wrap { width: 100%; margin: 0 auto; max-width: min(var(--content-w), 62vh); overflow: hidden; }
 .cal-summary { display: flex; gap: 8px; margin-top: 10px; }
 .cal-summary-item { flex: 1; background: #fff; border-radius: 12px; padding: 10px 6px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
 .cal-summary-item .num { display: block; font-size: clamp(16px, 3.4vw, 22px); font-weight: 800; line-height: 1.1; }
@@ -1509,19 +1522,19 @@ function detachRegScrollShrink() {
 }
 function attachRegScrollShrink() {
   detachRegScrollShrink()
-  // 히스테리시스: 축소는 44px 이후, 복원은 8px 이전에만 -> 경계에서 헤더가 떨리며
-  // 스크롤이 튀는 현상을 방지한다.
-  const SHRINK_ON = 44
-  const SHRINK_OFF = 8
+  // 최상단에서는 헤더를 작게 유지하고, 조금 스크롤하면 헤더를 키워
+  // 상세 정보를 보여준다. 히스테리시스로 경계에서 헤더가 떨리는 것을 방지.
+  const EXPAND_ON = 40
+  const EXPAND_OFF = 8
   let ticking = false
   const apply = () => {
     ticking = false
     const bar = document.querySelector(".reg-header-bar")
     if (!bar) return
     const y = window.scrollY || document.documentElement.scrollTop || 0
-    const shrunk = bar.classList.contains("shrink")
-    if (!shrunk && y > SHRINK_ON) bar.classList.add("shrink")
-    else if (shrunk && y < SHRINK_OFF) bar.classList.remove("shrink")
+    const expanded = bar.classList.contains("expanded")
+    if (!expanded && y > EXPAND_ON) bar.classList.add("expanded")
+    else if (expanded && y < EXPAND_OFF) bar.classList.remove("expanded")
   }
   regScrollHandler = () => {
     if (ticking) return
