@@ -420,7 +420,23 @@ body {
 .cal-nav-btn { background: #f0eefc; border: none; width: clamp(28px, 4vw, 40px); height: clamp(28px, 4vw, 40px); border-radius: 50%; color: #6c5ce7; font-size: clamp(15px, 2.4vw, 20px); font-weight: 700; cursor: pointer; }
 .cal-nav-btn:disabled { opacity: 0.3; cursor: default; }
 .schedule-cal-wrap { width: 100%; margin: 0 auto; max-width: min(var(--content-w), 68vh); overflow: hidden; }
-.attendance-cal-wrap { width: 100%; margin: 0 auto; max-width: min(var(--content-w), 62vh); overflow: hidden; }
+.attendance-cal-wrap { width: 100%; margin: 0 auto; max-width: min(var(--content-w), 62vh); overflow: hidden; transition: max-width 0.24s ease; }
+
+/* [v4] 헤더가 작은 기본 상태: 캘린더를 더 축소해서 한 화면에 통째로 들어오게 하고,
+   출석/결석/보강 숫자·범례·힌트는 숨긴다. 스크롤해서 헤더가 커지면 함께 나타난다. */
+body:not(.reg-expanded) .attendance-cal-wrap { max-width: min(var(--content-w), 43vh); }
+body:not(.reg-expanded) .attendance-calendar { padding: clamp(6px, min(3vw, 2.2vh), 18px); }
+body:not(.reg-expanded) .attendance-calendar .cal-month-label { font-size: 11px; margin: 2px 0 4px; }
+body:not(.reg-expanded) .cal-month-nav { margin-bottom: 6px; }
+body:not(.reg-expanded) .cal-summary,
+body:not(.reg-expanded) .attendance-calendar .cal-legend,
+body:not(.reg-expanded) .cal-hint { display: none; }
+/* 캘린더만 있는 화면에서도 살짝 스크롤해서 헤더를 펼 수 있도록 여지를 둔다 */
+body:not(.reg-expanded) .reg-detail-page { min-height: calc(100vh + 96px); }
+body.reg-expanded .cal-summary,
+body.reg-expanded .attendance-calendar .cal-legend,
+body.reg-expanded .cal-hint { animation: calExtraFadeIn 0.26s ease both; }
+@keyframes calExtraFadeIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
 .cal-summary { display: flex; gap: 8px; margin-top: 10px; }
 .cal-summary-item { flex: 1; background: #fff; border-radius: 12px; padding: 10px 6px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
 .cal-summary-item .num { display: block; font-size: clamp(16px, 3.4vw, 22px); font-weight: 800; line-height: 1.1; }
@@ -1595,6 +1611,7 @@ function detachRegScrollShrink() {
     regScrollHandler = null
   }
   window.onscroll = null
+  document.body.classList.remove("reg-expanded")
 }
 function attachRegScrollShrink() {
   detachRegScrollShrink()
@@ -1611,6 +1628,8 @@ function attachRegScrollShrink() {
     const expanded = bar.classList.contains("expanded")
     if (!expanded && y > EXPAND_ON) bar.classList.add("expanded")
     else if (expanded && y < EXPAND_OFF) bar.classList.remove("expanded")
+    // 캘린더 크기/부가정보 CSS 가 반응하도록 body 에도 상태를 동기화한다.
+    document.body.classList.toggle("reg-expanded", bar.classList.contains("expanded"))
   }
   regScrollHandler = () => {
     if (ticking) return
