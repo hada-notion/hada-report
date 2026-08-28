@@ -536,7 +536,7 @@ async function loadReportFromServer() {
     if (!row) throw new Error("no data")
     STUDENT = mapReportToStudent(row)
   } catch (e) {
-    DATA_ERROR = "데이타를 불달다온 중 문제가 생졌어요. 잠시 후 다시 시도해주세요."
+    DATA_ERROR = "데이터를 불러오는 중 문제가 생겼어요. 잠시 후 다시 시도해주세요."
   }
 }
 
