@@ -43,8 +43,8 @@ body {
 /* ===== 햄버거 ===== */
 .hamburger-btn {
   position: fixed;
-  top: 18px;
-  right: 18px;
+  top: 12px;
+  right: 12px;
   z-index: 60;
   width: 36px;
   height: 36px;
@@ -195,7 +195,7 @@ body {
 .reg-header-section { background: linear-gradient(160deg, #6c5ce7, #a29bfe 65%, #cbb9ff); color: #fff; text-align: center; }
 .reg-header-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .reg-back-btn { flex-shrink: 0; background: rgba(255,255,255,0.22); color: #fff; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 16px; font-weight: 600; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s ease; }
-.reg-breadcrumb { display: none; flex: 1; min-width: 0; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; line-height: 1; flex-wrap: nowrap; overflow: hidden; text-align: left; }
+.reg-breadcrumb { display: none; flex: 1; min-width: 0; align-items: center; gap: 4px; font-size: 14px; font-weight: 600; line-height: 1; flex-wrap: nowrap; overflow: hidden; text-align: left; }
 .reg-breadcrumb .crumb { display: inline-flex; align-items: center; line-height: 1; cursor: pointer; opacity: 0.9; white-space: nowrap; }
 .reg-breadcrumb .crumb:hover { text-decoration: underline; }
 .reg-breadcrumb .crumb.current { font-weight: 800; opacity: 1; cursor: default; overflow: hidden; text-overflow: ellipsis; }
@@ -219,7 +219,7 @@ body {
 
 /* ===== 등록 상세 - 뎁스2 하단 탭 방식 ===== */
 .reg-detail-page { min-height: 100vh; background: #f5f6f8; padding-bottom: 78px; -webkit-overflow-scrolling: touch; }
-.reg-header-bar { position: sticky; top: 0; z-index: 55; background: linear-gradient(160deg, #6c5ce7, #a29bfe 65%, #cbb9ff); color: #fff; text-align: center; padding: 18px 18px 18px; will-change: padding; }
+.reg-header-bar { position: sticky; top: 0; z-index: 55; background: linear-gradient(160deg, #6c5ce7, #a29bfe 65%, #cbb9ff); color: #fff; text-align: center; padding: 14px 14px 14px; will-change: padding; }
 .reg-tab-content { max-width: var(--content-w-wide); margin: 0 auto; padding: 18px clamp(4px, 3vw, 16px) 24px; }
 .reg-tab-content h2 { font-size: 17px; margin: 0 0 4px; color: #333; }
 .reg-tab-content .section-hint { font-size: 12px; color: #888; margin-bottom: 16px; }
@@ -233,13 +233,13 @@ body {
 .reg-header-bar { transition: padding 0.22s ease; }
 /* 기본 상태(최상단) = 작은 헤더. 뒤로가기 + 경로만 노출해서
    캘린더가 한 화면에 다 들어오게 한다. 스크롤하면 .expanded 가 붙어 커진다. */
-.reg-header-bar { padding: 16px 18px 16px; }
+.reg-header-bar { padding: 12px 12px 12px; }
 .reg-header-bar .reg-head-row, .reg-header-bar .reg-cover-wrap, .reg-header-bar .reg-sub-badges, .reg-header-bar .reg-period, .reg-header-bar .reg-divider { display: none; }
 .reg-header-bar .reg-breadcrumb { display: flex; }
 .reg-header-bar .reg-back-btn { width: 36px; height: 36px; font-size: 16px; }
 .reg-header-bar:not(.expanded) .reg-header-top { margin-bottom: 0; }
 /* 스크롤 내리면 헤더가 커지면서 상세 정보가 드러난다 */
-.reg-header-bar.expanded { padding: 18px 18px 18px; }
+.reg-header-bar.expanded { padding: 14px 14px 14px; }
 .reg-header-bar.expanded .reg-head-row { display: flex; }
 .reg-header-bar.expanded .reg-head-row.stacked { display: flex; flex-direction: column; }
 .reg-header-bar.expanded .reg-cover-wrap { display: block; }
