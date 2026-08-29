@@ -724,7 +724,7 @@ async function loadReportFromServer() {
 
 // ===================== 상태 =====================
 const app = document.getElementById("app")
-let view = "intro" // "intro" | "detail" | "grades" | "schedule" | "daily" | "book"
+let view = "intro" // "intro" | "detail" | "grades" | "schedule" | "book"
 let selectedToken = null
 let selectedBookTitle = null
 let gradeView = "table"
@@ -734,8 +734,9 @@ let selectedCalDate = null
 let regTab = "books" // "books" | "calendar" | "study" | "report"
 let calMode = "attendance" // "attendance" | "homework"
 let regCalMonthIndex = 0
-let reportPeriod = "week" // "week" | "month"
+let reportPeriod = "week" // "week" | "month" | "day"
 let reportOffset = 0 // 0 = current period, 1 = previous period, etc.
+let reportDayDate = null // used when reportPeriod === "day"
 let bookStatusTab = "진행중" // "진행중" | "완료" | "예정"
 const MOCK_TODAY = new Date().toISOString().slice(0, 10)
 
@@ -773,6 +774,7 @@ function openRegistration(token) {
   regCalMonthIndex = 0
   reportPeriod = "week"
   reportOffset = 0
+  reportDayDate = null
   view = "detail"
   renderApp()
   window.scrollTo({ top: 0 })
@@ -839,7 +841,7 @@ function renderBookDetail() {
       </div>
       <div class="reg-tab-content">
         <h2>📖 학습기록</h2>
-        <div class="section-hint">이 교재와 관련된 학습 · 과제 · 평가 기록을 최신순으로 보여줍니다</div>
+        <div class="section-hint">이 교재와 관련된 학습 · 과제 · 평가 기록을 최근순으로 보여줍니다</div>
         ${(() => {
           const groups = []
           sorted.forEach((l) => {
@@ -892,12 +894,9 @@ function goIntro() {
 
 function selectCalDay(date) {
   selectedCalDate = date
-  view = "daily"
-  renderApp()
-  window.scrollTo({ top: 0 })
-}
-
-function backToDetailFromDaily() {
+  regTab = "report"
+  reportPeriod = "day"
+  reportDayDate = date
   view = "detail"
   renderApp()
   window.scrollTo({ top: 0 })
@@ -1328,14 +1327,24 @@ function buildRegCalendarHtml(r, mode) {
 function setReportPeriod(period) {
   reportPeriod = period
   reportOffset = 0
+  if (period === "day") reportDayDate = reportDayDate || MOCK_TODAY
   renderApp()
 }
 function navigateReportPeriod(delta) {
   reportOffset = Math.max(0, reportOffset + delta)
   renderApp()
 }
+function navigateReportDay(delta) {
+  const candidate = addDaysStr(reportDayDate || MOCK_TODAY, -delta)
+  reportDayDate = candidate > MOCK_TODAY ? MOCK_TODAY : candidate
+  renderApp()
+}
 function goReportCurrent() {
-  reportOffset = 0
+  if (reportPeriod === "day") {
+    reportDayDate = MOCK_TODAY
+  } else {
+    reportOffset = 0
+  }
   renderApp()
 }
 function reportRange() {
@@ -1430,9 +1439,9 @@ function buildReportTabHtml(r) {
   const periodLabel = reportPeriod === "week" ? `${rangeStart} ~ ${rangeEnd}` : `${rangeStart.slice(0, 7)}`
   const segToggleHtml = `
     <div class="seg-toggle">
+      <button class="${reportPeriod === "day" ? "active" : ""}" onclick="setReportPeriod('day')">일간 보고서</button>
       <button class="${reportPeriod === "week" ? "active" : ""}" onclick="setReportPeriod('week')">주간 보고서</button>
       <button class="${reportPeriod === "month" ? "active" : ""}" onclick="setReportPeriod('month')">월간 보고서</button>
-      <button class="${reportPeriod === "day" ? "active" : ""}" onclick="setReportPeriod('day')">일간 보고서</button>
     </div>
   `
   if (reportPeriod === "day") {
@@ -1567,39 +1576,6 @@ function buildDailyBodyHtml(r, date) {
   `
 }
 
-function renderDailyReport() {
-  const r = STUDENT.registrations.find((x) => x.token === selectedToken)
-  const date = selectedCalDate
-  if (!r || !date) return renderIntro()
-
-  return `
-    <div class="reg-detail-page">
-      <div class="reg-header-bar">
-        <div class="reg-header-top">
-          <button class="reg-back-btn" onclick="backToDetailFromDaily()">←</button>
-          <div class="reg-breadcrumb">
-            <span class="crumb" onclick="goIntro()">${esc(STUDENT.student_name)}</span>
-            <span class="crumb-sep">›</span>
-            <span class="crumb" onclick="backToDetailFromDaily()">${r.emoji} ${esc(r.class_name)}</span>
-            <span class="crumb-sep">›</span>
-            <span class="crumb current">📅 ${formatDateLabel(date)}</span>
-          </div>
-        </div>
-        <div class="reg-head-row stacked">
-          <div class="reg-emoji">📋</div>
-          <div class="reg-title">데일리 리포트</div>
-        </div>
-        <div class="reg-period">${r.emoji} ${esc(r.class_name)} ${esc(STUDENT.student_name)}</div>
-      </div>
-      <div class="reg-tab-content">
-        <h2>📅 ${formatDateLabel(date)}</h2>
-        <div class="section-hint">이 날의 출석 · 학습 · 과제 · 평가 기록을 한눈에 보여줍니다</div>
-        ${buildDailyBodyHtml(r, date)}
-      </div>
-    </div>
-  `
-}
-
 function renderDetail() {
   const r = STUDENT.registrations.find((x) => x.token === selectedToken)
   if (!r) return renderIntro()
@@ -1729,9 +1705,9 @@ function detachRegScrollShrink() {
   if (bar) bar.classList.remove("expanded")
 }
 function attachRegScrollShrink() {
-  // 스크롤에 따라 헤더 큰기를 동적으로 바꾸는 방식은 태발/스크롤 감도도 문제가 있어 제거하고,
-  // 헤더를 직은 항상 작은(축소) 사이즈로 고정한다.
-  // 이에 맞춰 생달렉/보조정보도 "헤더 축소" 상태의 스타일(큰 생달렉 + 및몸로량 표시)로 고정된다.
+  // 스크롤에 따라 헤더 크기를 동적으로 바꾸는 방식은 반응속도/스크롤 감도도 문제가 있어 제거하고,
+  // 헤더를 항상 작은(축소) 사이즈로 고정한다.
+  // 이에 맞춰 제목/보조정보도 "헤더 축소" 상태의 스타일로 고정된다.
   detachRegScrollShrink()
 }
 function renderApp() {
@@ -1740,9 +1716,6 @@ function renderApp() {
     attachRegScrollShrink()
   } else if (view === "book") {
     app.innerHTML = renderBookDetail()
-    attachRegScrollShrink()
-  } else if (view === "daily") {
-    app.innerHTML = renderDailyReport()
     attachRegScrollShrink()
   } else {
     detachRegScrollShrink()
