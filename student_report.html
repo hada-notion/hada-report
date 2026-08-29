@@ -647,9 +647,31 @@ function splitClassNameEmoji(rawClassName) {
   return { emoji: "", name: str }
 }
 
-// 실제 Supabase RPC 응답(단일 등록 기준)을 앞단의 UI가 사용하는 STUDENT/registrations[] 형태로 변환합니다.
-// (현재 Edge Function은 하나의 등록만 반환 — 형제/자매 다중등록 집계는 추후 지원)
+// Supabase RPC 응답(같은 학생의 모든 등록을 registrations[] 배열로 집계)을 앞단의 UI가 사용하는
+// STUDENT/registrations[] 형태로 변환합니다.
+function mapRegistration(reg) {
+  return {
+    token: reg.access_token || "",
+    emoji: splitClassNameEmoji(reg.class_name).emoji || pickClassColorEmoji(splitClassNameEmoji(reg.class_name).name),
+    class_name: splitClassNameEmoji(reg.class_name).name || reg.class_name || "",
+    status: "수강중",
+    start: null,
+    end: null,
+    teacher: reg.teacher_name || "",
+    class_mode: reg.class_mode || "",
+    schedule: (reg.schedule || []).map((s) => ({ day: s.day, start: s.start, end: s.end })),
+    books: (reg.books || []).map((b) => ({ title: b.title || "", progress: b.progress ?? 0, status: normalizeBookStatus(b.status), cover: b.cover || "" })),
+    attendance_summary: reg.attendance_summary || { present: 0, absent: 0, makeup: 0 },
+    attendance_rows: (reg.attendance_rows || []).map((a) => ({ date: a.iso || a.date_iso || (typeof a.date === "string" && /^\d{4}-\d{2}-\d{2}/.test(a.date) ? a.date.slice(0, 10) : null), weekday: a.weekday || "", status: a.status || "" })),
+    study_logs: (reg.study_logs || []).map((s) => ({ book: s.book || "", range: s.range || "", unit: s.unit || "", date: s.iso || null, note: s.note || "", body: normalizeFeedBody(s.body) })),
+    homework: (reg.homework || []).map((h) => ({ title: h.title || "", due: h.due_iso || null, status: h.status || "머곱링" })),
+    tests: (reg.tests || []).map((t) => ({ title: t.title || "", date: t.iso || null, correct: t.correct ?? 0, total: t.total ?? 0 })),
+    teacher_comments: (reg.teacher_comments || []).map((c) => ({ text: c.text || "", date: c.iso || null, by: c.by || "" })),
+  }
+}
+
 function mapReportToStudent(r) {
+  const regs = Array.isArray(r.registrations) && r.registrations.length ? r.registrations : [r]
   return {
     academy_name: "",
     student_name: r.student_name || "",
@@ -670,26 +692,7 @@ function mapReportToStudent(r) {
       date: g.iso || null,
     })),
     notices: (r.notices || []).map((n) => ({ date: n.date || null, title: n.title || "", category: n.category || "" })),
-    registrations: [
-      {
-        token: r.access_token || "",
-        emoji: splitClassNameEmoji(r.class_name).emoji || pickClassColorEmoji(splitClassNameEmoji(r.class_name).name),
-        class_name: splitClassNameEmoji(r.class_name).name || r.class_name || "",
-        status: "수강중",
-        start: null,
-        end: null,
-        teacher: r.teacher_name || "",
-        class_mode: r.class_mode || "",
-        schedule: (r.schedule || []).map((s) => ({ day: s.day, start: s.start, end: s.end })),
-        books: (r.books || []).map((b) => ({ title: b.title || "", progress: b.progress ?? 0, status: normalizeBookStatus(b.status), cover: b.cover || "" })),
-        attendance_summary: r.attendance_summary || { present: 0, absent: 0, makeup: 0 },
-        attendance_rows: (r.attendance_rows || []).map((a) => ({ date: a.iso || a.date_iso || (typeof a.date === "string" && /^\d{4}-\d{2}-\d{2}/.test(a.date) ? a.date.slice(0, 10) : null), weekday: a.weekday || "", status: a.status || "" })),
-        study_logs: (r.study_logs || []).map((s) => ({ book: s.book || "", range: s.range || "", unit: s.unit || "", date: s.iso || null, note: s.note || "", body: normalizeFeedBody(s.body) })),
-        homework: (r.homework || []).map((h) => ({ title: h.title || "", due: h.due_iso || null, status: h.status || "머곱링" })),
-        tests: (r.tests || []).map((t) => ({ title: t.title || "", date: t.iso || null, correct: t.correct ?? 0, total: t.total ?? 0 })),
-        teacher_comments: (r.teacher_comments || []).map((c) => ({ text: c.text || "", date: c.iso || null, by: c.by || "" })),
-      },
-    ],
+    registrations: regs.map(mapRegistration),
   }
 }
 
