@@ -1104,7 +1104,7 @@ function showTestDetailModal(i) {
       <div class="log-title-row"><div class="log-title">${esc([p.book, p.range].filter(Boolean).join(" · "))}</div><span class="log-pill ${scorePillTone(p.correct ?? 0, p.total ?? 0)}">정답 ${p.correct ?? 0} / ${p.total ?? 0}</span></div>
       ${p.unit ? `<div class="log-context">${esc(`  • 단원: ${p.unit}`)}</div>` : ""}
       ${(p.note || p.title) ? `<div class="log-note">${esc(p.note || p.title)}</div>` : ""}
-      <div class="log-context">점수: ${p.avg != null ? p.avg.toFixed(1) : "-"}점</div>
+      <div class="log-context">  • 점수: ${p.avg != null ? p.avg.toFixed(1) : "-"}점</div>
     </div>
   `
   document.getElementById("test-detail-modal").classList.add("active")
