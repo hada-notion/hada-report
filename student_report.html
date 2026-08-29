@@ -1049,7 +1049,7 @@ function closeScheduleDayModal() {
 function buildGradeTableHtml(grades) {
   return `
     <table class="grade-table">
-      <thead><tr><th>과목</th><th>시험명</th><th>점수</th><th>��급</th><th>날짜</th></tr></thead>
+      <thead><tr><th>과목</th><th>시험명</th><th>점수</th><th>등급</th><th>날짜</th></tr></thead>
       <tbody>${grades.slice().reverse().map((g) => `<tr><td>${esc(g.subject)}</td><td>${esc(g.exam_name)}</td><td>${g.score}점</td><td>${esc(g.grade_level)}</td><td>${esc(g.date)}</td></tr>`).join("")}</tbody>
     </table>
   `
@@ -1393,7 +1393,7 @@ function buildTestTrendChartHtml(points) {
   const validPoints = points.map((p, i) => ({ ...p, i })).filter((p) => p.avg !== null)
   const path = validPoints.map((p) => `${xFor(p.i)},${yFor(p.avg)}`).join(" ")
   const dots = validPoints.map((p) => `<circle cx="${xFor(p.i)}" cy="${yFor(p.avg)}" r="4" fill="#6c5ce7" />`).join("")
-  const valueLabels = validPoints.map((p) => `<text x="${xFor(p.i)}" y="${yFor(p.avg) - 10}" font-size="11" font-weight="700" fill="#6c5ce7" text-anchor="middle">${p.avg}%</text>`).join("")
+  const valueLabels = validPoints.map((p) => `<text x="${xFor(p.i)}" y="${yFor(p.avg) - 10}" font-size="11" font-weight="700" fill="#6c5ce7" text-anchor="middle">${p.avg}점</text>`).join("")
   const gridLines = ticks.map((v) => `
     <line x1="${paddingX}" y1="${yFor(v)}" x2="${width - paddingX}" y2="${yFor(v)}" stroke="#eee" stroke-width="1" />
     <text x="2" y="${yFor(v) + 4}" font-size="9" fill="#bbb">${v}</text>
@@ -1484,7 +1484,11 @@ function renderDailyReport() {
 
   const todaysLogs = (r.study_logs || []).filter((l) => l.date === date)
   const nextHomework = findNextHomework(r, date)
-  const todaysTests = (r.tests || []).filter((t) => t.date === date)
+  const allTests = r.tests || []
+  const todaysTests = allTests.filter((t) => t.date === date)
+  const weekRangeStart = addDaysStr(date, -6)
+  const weekTests = allTests.filter((t) => t.date >= weekRangeStart && t.date <= date)
+  const weekAvgScore = weekTests.length ? Math.round(weekTests.reduce((s, t) => s + (t.total ? (t.correct / t.total) * 100 : 0), 0) / weekTests.length) : null
   const comment = findLatestComment(r, date)
 
   return `
@@ -1546,13 +1550,18 @@ function renderDailyReport() {
 
         <div class="card">
           <h2>📄 평가</h2>
-          ${todaysTests.length ? todaysTests.map((t) => `
+          ${todaysTests.length ? todaysTests.map((t) => {
+            const testScore = t.total ? Math.round((t.correct / t.total) * 100) : null
+            const scoreDiff = (testScore !== null && weekAvgScore !== null) ? testScore - weekAvgScore : null
+            return `
             <div class="log-row 평가">
-              <div class="log-title-row"><div class="log-title">${esc([t.book, t.range].filter(Boolean).join(" · ") || t.title)}</div><span class="log-pill">정답 ${t.correct ?? 0} / ${t.total ?? 0}</span></div>
+              <div class="log-title-row"><div class="log-title">${esc([t.book, t.range].filter(Boolean).join(" · ") || t.title)}</div><span class="log-pill">${testScore !== null ? `${testScore}점` : "-"}</span></div>
               ${t.unit ? `<div class="log-context">${esc(`단원: ${t.unit}`)}</div>` : ""}
+              <div class="log-context">정답 ${t.correct ?? 0} / ${t.total ?? 0}${scoreDiff !== null ? ` · 주간 평균(${weekAvgScore}점) 대비 ${scoreDiff > 0 ? "+" : ""}${scoreDiff}점` : ""}</div>
               ${t.note ? `<div class="log-note">${esc(t.note)}</div>` : ""}
             </div>
-          `).join("") : '<div class="empty">이 날짜에 기록된 평가가 없습니다.</div>'}
+          `
+          }).join("") : '<div class="empty">이 날짜에 기록된 평가가 없습니다.</div>'}
         </div>
 
         <div class="card">
