@@ -472,8 +472,8 @@ body:not(.reg-expanded) .cal-hint { animation: calExtraFadeIn 0.26s ease both; }
 .feed-images { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-top: 2px; }
 .feed-images.single { grid-template-columns: 1fr; }
 .feed-figure { margin: 0; }
-.feed-img { width: 100%; height: 100%; max-height: 320px; object-fit: cover; border-radius: 12px; display: block; background: #f0f0f4; cursor: zoom-in; }
-.feed-images.single .feed-img { max-height: 420px; object-fit: contain; background: #fafafa; }
+.feed-img { width: 100%; aspect-ratio: 1 / 1; max-height: 320px; object-fit: cover; border-radius: 12px; display: block; background: #f0f0f4; cursor: zoom-in; }
+.feed-images.single .feed-img { aspect-ratio: auto; height: auto; max-height: 420px; object-fit: contain; background: #fafafa; }
 .feed-figure figcaption { font-size: 11px; color: #999; margin-top: 4px; text-align: center; }
 .feed-video { margin: 8px 0; }
 .feed-video iframe { width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; display: block; border: 0; }
@@ -1049,7 +1049,7 @@ function closeScheduleDayModal() {
 function buildGradeTableHtml(grades) {
   return `
     <table class="grade-table">
-      <thead><tr><th>과목</th><th>시험명</th><th>점수</th><th>등급</th><th>날짜</th></tr></thead>
+      <thead><tr><th>과목</th><th>시험명</th><th>점수</th><th>��급</th><th>날짜</th></tr></thead>
       <tbody>${grades.slice().reverse().map((g) => `<tr><td>${esc(g.subject)}</td><td>${esc(g.exam_name)}</td><td>${g.score}점</td><td>${esc(g.grade_level)}</td><td>${esc(g.date)}</td></tr>`).join("")}</tbody>
     </table>
   `
