@@ -1379,6 +1379,15 @@ function computeTestTrendPoints(tests, periodType, baseOffset) {
   }
   return points
 }
+function computeRecentTestPoints(tests, asOfDate, count) {
+  const past = tests.filter((t) => t.date <= asOfDate).slice().sort((a, b) => (a.date || "").localeCompare(b.date || ""))
+  const recent = past.slice(-count)
+  return recent.map((t) => ({
+    label: (t.date || "").slice(5).replace("-", "."),
+    avg: t.total ? Math.round((t.correct / t.total) * 100) : null,
+    count: 1,
+  }))
+}
 function buildTestTrendChartHtml(points) {
   const width = 400, height = 200, paddingX = 30, paddingTop = 20, paddingBottom = 34
   const xStep = points.length > 1 ? (width - paddingX * 2) / (points.length - 1) : 0
@@ -1484,11 +1493,7 @@ function renderDailyReport() {
 
   const todaysLogs = (r.study_logs || []).filter((l) => l.date === date)
   const nextHomework = findNextHomework(r, date)
-  const allTests = r.tests || []
-  const todaysTests = allTests.filter((t) => t.date === date)
-  const weekRangeStart = addDaysStr(date, -6)
-  const weekTests = allTests.filter((t) => t.date >= weekRangeStart && t.date <= date)
-  const weekAvgScore = weekTests.length ? Math.round(weekTests.reduce((s, t) => s + (t.total ? (t.correct / t.total) * 100 : 0), 0) / weekTests.length) : null
+  const todaysTests = (r.tests || []).filter((t) => t.date === date)
   const comment = findLatestComment(r, date)
 
   return `
@@ -1550,18 +1555,14 @@ function renderDailyReport() {
 
         <div class="card">
           <h2>📄 평가</h2>
-          ${todaysTests.length ? todaysTests.map((t) => {
-            const testScore = t.total ? Math.round((t.correct / t.total) * 100) : null
-            const scoreDiff = (testScore !== null && weekAvgScore !== null) ? testScore - weekAvgScore : null
-            return `
+          ${buildTestTrendChartHtml(computeRecentTestPoints(r.tests || [], date, 3))}
+          ${todaysTests.length ? todaysTests.map((t) => `
             <div class="log-row 평가">
-              <div class="log-title-row"><div class="log-title">${esc([t.book, t.range].filter(Boolean).join(" · ") || t.title)}</div><span class="log-pill">${testScore !== null ? `${testScore}점` : "-"}</span></div>
+              <div class="log-title-row"><div class="log-title">${esc([t.book, t.range].filter(Boolean).join(" · ") || t.title)}</div><span class="log-pill">정답 ${t.correct ?? 0} / ${t.total ?? 0}</span></div>
               ${t.unit ? `<div class="log-context">${esc(`단원: ${t.unit}`)}</div>` : ""}
-              <div class="log-context">정답 ${t.correct ?? 0} / ${t.total ?? 0}${scoreDiff !== null ? ` · 주간 평균(${weekAvgScore}점) 대비 ${scoreDiff > 0 ? "+" : ""}${scoreDiff}점` : ""}</div>
               ${t.note ? `<div class="log-note">${esc(t.note)}</div>` : ""}
             </div>
-          `
-          }).join("") : '<div class="empty">이 날짜에 기록된 평가가 없습니다.</div>'}
+          `).join("") : '<div class="empty">이 날짜에 기록된 평가가 없습니다.</div>'}
         </div>
 
         <div class="card">
