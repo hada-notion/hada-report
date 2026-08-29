@@ -177,7 +177,7 @@ body {
 .up-hint { position: absolute; top: var(--hint-gap); left: 0; right: 0; margin-top: 0; font-size: var(--hint-font); color: #bbb; text-align: center; cursor: pointer; opacity: 0.8; }
 .up-hint .chevron { display: block; font-size: var(--hint-chevron); margin-bottom: var(--hint-chevron-gap); }
 
-/* ===== 등록 상세(메인) 페이지 ===== */
+/* ===== ���록 상세(메인) 페이지 ===== */
 .detail-page { max-width: var(--content-w-wide); margin: 0 auto; padding: 16px; padding-bottom: 60px; }
 .header {
   background: linear-gradient(135deg, #6c5ce7, #a29bfe);
@@ -693,8 +693,8 @@ function mapRegistration(reg) {
     attendance_summary: reg.attendance_summary || { present: 0, absent: 0, makeup: 0 },
     attendance_rows: (reg.attendance_rows || []).map((a) => ({ date: a.iso || a.date_iso || (typeof a.date === "string" && /^\d{4}-\d{2}-\d{2}/.test(a.date) ? a.date.slice(0, 10) : null), weekday: a.weekday || "", status: a.status || "" })),
     study_logs: (reg.study_logs || []).map((s) => ({ book: s.book || "", range: s.range || "", unit: s.unit || "", date: s.iso || null, note: s.note || "", body: normalizeFeedBody(s.body) })),
-    homework: (reg.homework || []).map((h) => ({ title: h.title || "", due: h.due_iso || null, status: h.status || "머곱링" })),
-    tests: (reg.tests || []).map((t) => ({ title: t.title || "", date: t.iso || null, correct: t.correct ?? 0, total: t.total ?? 0 })),
+    homework: (reg.homework || []).map((h) => ({ title: h.title || "", book: h.book || "", range: h.range || "", unit: h.unit || "", note: h.note || "", due: h.due_iso || null, status: h.status || "미제출" })),
+    tests: (reg.tests || []).map((t) => ({ title: t.title || "", book: t.book || "", range: t.range || "", unit: t.unit || "", note: t.note || "", date: t.iso || null, correct: t.correct ?? 0, total: t.total ?? 0 })),
     teacher_comments: (reg.teacher_comments || []).map((c) => ({ text: c.text || "", date: c.iso || null, by: c.by || "" })),
   }
 }
