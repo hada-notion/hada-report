@@ -402,12 +402,16 @@ body {
 .info-detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
 .info-detail-row:last-child { border-bottom: none; }
 .info-detail-row .label { color: #888; }
-.reg-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 4px; border-bottom: 1px solid #f0f0f0; cursor: pointer; }
+.reg-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 4px; border-bottom: 1px solid #f0f0f0; cursor: pointer; gap: 8px; }
 .reg-item:last-child { border-bottom: none; }
-.reg-item .left { display: flex; align-items: center; gap: 8px; }
-.reg-item .name-wrap { display: flex; flex-direction: row; align-items: center; gap: 8px; }
-.reg-item .class-name { font-weight: 600; font-size: 14px; }
-.reg-item .period { font-size: 12px; color: #999; white-space: nowrap; }
+.reg-item .left { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; overflow: hidden; }
+.reg-item .name-wrap { display: flex; flex-direction: row; align-items: center; gap: 8px; min-width: 0; flex-wrap: nowrap; overflow: hidden; }
+.reg-item .class-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
+.reg-item .period { font-size: 12px; color: #999; white-space: nowrap; flex-shrink: 0; }
+.reg-item .badge { flex-shrink: 0; white-space: nowrap; }
+@media (max-width: 360px) {
+  .reg-item .period { display: none; }
+}
 
 .menu-item-header { display: flex; align-items: center; gap: 10px; padding: 14px 6px; border-bottom: 1px solid #f2f2f2; font-size: 15px; font-weight: 600; cursor: pointer; background: #fff; }
 .menu-item-header .icon { font-size: 18px; }
@@ -973,7 +977,7 @@ function registrationsBodyHtml() {
         <span>${r.emoji}</span>
         <div class="name-wrap">
           <span class="class-name">${esc(r.class_name)}</span>
-          <span class="period">${esc(r.start)} ~ ${r.end ? esc(r.end) : "현재"}</span>
+          <span class="period">${esc(toShortDate(r.start))} ~ ${r.end ? esc(toShortDate(r.end)) : "현재"}</span>
         </div>
       </div>
       <span class="badge ${esc(r.status)}">${esc(r.status)}</span>
@@ -1526,6 +1530,14 @@ function buildReportTabHtml(r) {
       ${comments.length ? comments.map((c) => `<div class="list-item"><div>${esc(c.text)}</div><div class="meta">${esc(c.date)} · ${esc(c.by)}</div></div>`).join("") : `<div class="list-item empty-hint">아직 등록된 한마디가 없어요</div>`}
     </div>
   `
+}
+
+function toShortDate(date) {
+  if (!date) return date
+  const parts = String(date).split("-")
+  if (parts.length !== 3) return date
+  const [y, m, d] = parts
+  return `${y.slice(-2)}.${m}.${d}`
 }
 
 function formatDateLabel(date) {
