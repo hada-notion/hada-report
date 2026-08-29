@@ -36,6 +36,7 @@
   .error { color: #e04b4b; }
   .toolbar { margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
   .toolbar button { background: #333; }
+  .student-header td { background: #f7f5ff; }
 </style>
 </head>
 <body>
@@ -107,9 +108,29 @@ async function loadStudents() {
   }
 }
 
+let STUDENTS = [] // flat list from the server, kept for lookups by index
+
+const ACTIVE_STATUS = "수강 중"
+
+function groupByStudent(students) {
+  const order = []
+  const map = new Map()
+  students.forEach((s, i) => {
+    const key = s.studentName || s.title || s.registrationId
+    if (!map.has(key)) {
+      map.set(key, [])
+      order.push(key)
+    }
+    map.get(key).push(i)
+  })
+  return order.map((key) => ({ studentName: key, indices: map.get(key) }))
+}
+
 function renderTable(students) {
   const app = document.getElementById("app")
-  document.getElementById("count").textContent = `총 ${students.length}명`
+  STUDENTS = students
+  const groups = groupByStudent(students)
+  document.getElementById("count").textContent = `총 ${groups.length}명 (등록 ${students.length}건)`
 
   if (!students.length) {
     app.innerHTML = '<div class="error">학생 목록이 비어 있습니다. 등록(학원) DB 데이터베이스 ID 설정을 확인해주세요.</div>'
@@ -119,23 +140,56 @@ function renderTable(students) {
   app.innerHTML = `
     <table>
       <thead>
-        <tr><th>학생</th><th>마지막 갱신</th><th>링크</th><th>작업</th></tr>
+        <tr><th>학생 / 등록</th><th>수강상태</th><th>마지막 갱신</th><th>링크</th><th>작업</th></tr>
       </thead>
       <tbody>
-        ${students.map((s, i) => `
-          <tr id="row-${i}">
-            <td>${esc(s.title || s.registrationId)}</td>
-            <td class="status" id="updated-${i}">${formatDate(s.updatedAt)}</td>
-            <td id="link-${i}">${s.accessToken ? `<a class="link" href="${reportUrl(s.accessToken)}" target="_blank">보기</a>` : "-"}</td>
+        ${groups.map((g, gi) => {
+          const activeCount = g.indices.filter((i) => students[i].status === ACTIVE_STATUS).length
+          return `
+          <tr class="student-header">
+            <td colspan="4"><strong>${esc(g.studentName)}</strong> <span class="status">(${g.indices.length}개 등록${activeCount ? `, 수강중 ${activeCount}` : ""})</span></td>
             <td>
-              <button id="btn-${i}" onclick='generateReport(${i}, ${JSON.stringify(s.registrationId)})'>보고서 생성</button>
-              ${s.accessToken ? `<button class="secondary" onclick='copyLink(${JSON.stringify(s.accessToken)})'>링크 복사</button>` : ""}
+              <button id="syncall-${gi}" onclick='syncAllForStudent(${gi})' ${activeCount ? "" : "disabled"}>전체 동기화</button>
             </td>
           </tr>
-        `).join("")}
+          ${g.indices.map((i) => {
+            const s = students[i]
+            return `
+            <tr id="row-${i}">
+              <td style="padding-left:28px">${esc(s.title || s.registrationId)}</td>
+              <td class="status">${esc(s.status || "-")}</td>
+              <td class="status" id="updated-${i}">${formatDate(s.updatedAt)}</td>
+              <td id="link-${i}">${s.accessToken ? `<a class="link" href="${reportUrl(s.accessToken)}" target="_blank">보기</a>` : "-"}</td>
+              <td>
+                <button id="btn-${i}" onclick='generateReport(${i}, ${JSON.stringify(s.registrationId)})'>보고서 생성</button>
+                ${s.accessToken ? `<button class="secondary" onclick='copyLink(${JSON.stringify(s.accessToken)})'>링크 복사</button>` : ""}
+              </td>
+            </tr>
+          `}).join("")}
+        `}).join("")}
       </tbody>
     </table>
   `
+}
+
+// 같은 학생의 "수강 중"인 등록만 순서대로 동기화합니다. 수강 종료/대기 등록은 건너뜁니다.
+async function syncAllForStudent(groupIndex) {
+  const groups = groupByStudent(STUDENTS)
+  const group = groups[groupIndex]
+  if (!group) return
+  const targets = group.indices.filter((i) => STUDENTS[i].status === ACTIVE_STATUS)
+  const syncAllBtn = document.getElementById(`syncall-${groupIndex}`)
+  if (syncAllBtn) { syncAllBtn.disabled = true; syncAllBtn.textContent = `동기화 중... (0/${targets.length})` }
+  let done = 0
+  for (const i of targets) {
+    await generateReport(i, STUDENTS[i].registrationId)
+    done++
+    if (syncAllBtn) syncAllBtn.textContent = `동기화 중... (${done}/${targets.length})`
+  }
+  if (syncAllBtn) {
+    syncAllBtn.textContent = `✅ 완료 (${targets.length}건)`
+    setTimeout(() => { syncAllBtn.disabled = false; syncAllBtn.textContent = "전체 동기화" }, 1500)
+  }
 }
 
 async function generateReport(index, registrationId) {
