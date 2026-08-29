@@ -878,13 +878,18 @@ function renderBookDetail() {
       if (!studiedUnitList.some((u) => u.text === part)) studiedUnitList.push({ text: part, done: true })
     })
   })
-  const unitList = (book.units && book.units.length)
+  const unitSortKey = (t) => {
+    const m = t.match(/^(\d+)-(\d+)/)
+    return m ? Number(m[1]) * 1000 + Number(m[2]) : 999999
+  }
+  const unitList = ((book.units && book.units.length)
     ? book.units.map((u) => {
         const m = u.match(/^(\d+-\d+)/)
         const key = m ? m[1] : u
         return { text: u, done: studiedUnitKeys.has(key) }
       })
     : studiedUnitList
+  ).slice().sort((a, b) => unitSortKey(a.text) - unitSortKey(b.text))
   return `
     <div class="reg-detail-page">
       <div class="reg-header-bar">
@@ -1083,7 +1088,7 @@ function normalizeCategoryName(category) {
     .trim()
 }
 const NOTICE_CATEGORY_COLORS = { "휴원": "#9b9a97", "학원 일정": "#337ea9", "학사 일정": "#e03e3e", "할일": "#448361" }
-const NOTICE_CATEGORY_EMOJI = { "휴원": "💤", "학원 일정": "📆", "학사 일정": "🏫", "할일": "✅" }
+const NOTICE_CATEGORY_EMOJI = { "휴원": "💤", "학�� 일정": "📆", "학사 일정": "🏫", "할일": "✅" }
 // 할일(✅)은 강사/직원용 내부 항목이므로 학생에게는 절대 노출하지 않는다.
 function getStudentVisibleNotices() {
   return STUDENT.notices.filter((n) => normalizeCategoryName(n.category) !== "할일")
@@ -1450,7 +1455,8 @@ function setReportPeriod(period) {
   renderApp()
 }
 function navigateReportPeriod(delta) {
-  reportOffset = Math.max(0, reportOffset + delta)
+  const maxOffset = reportPeriod === "week" ? 12 : 3
+  reportOffset = Math.max(0, Math.min(maxOffset, reportOffset + delta))
   renderApp()
 }
 function navigateReportDay(delta) {
@@ -1587,7 +1593,7 @@ function buildReportTabHtml(r) {
     <div class="section-hint">주간·월간·일간 학습 리포트를 확인하세요</div>
     ${segToggleHtml}
     <div class="cal-month-nav">
-      <button class="cal-nav-btn" onclick="navigateReportPeriod(1)">‹</button>
+      <button class="cal-nav-btn" ${reportOffset >= (reportPeriod === "week" ? 12 : 3) ? "disabled" : ""} onclick="navigateReportPeriod(1)">‹</button>
       <div class="cal-month-title">${esc(periodLabel)}</div>
       <div class="cal-nav-right">
         <button class="cal-today-btn" onclick="goReportCurrent()">현재</button>
