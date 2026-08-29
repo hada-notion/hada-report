@@ -210,6 +210,15 @@ body {
 .reg-cover-wrap { text-align: center; margin: 4px 0 12px; }
 .reg-cover-img { width: 110px; height: 150px; margin: 0 auto; border-radius: 10px; overflow: hidden; background: rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center; font-size: 42px; box-shadow: 0 2px 8px rgba(0,0,0,0.18); }
 .reg-cover-img img { width: 100%; height: 100%; object-fit: cover; }
+.book-cover-card { display: flex; gap: 16px; background: #fff; border-radius: 14px; padding: 18px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.book-cover-card-img { width: 110px; height: 150px; flex-shrink: 0; border-radius: 10px; overflow: hidden; background: linear-gradient(135deg, #ece9fb, #f5f3ff); display: flex; align-items: center; justify-content: center; font-size: 42px; }
+.book-cover-card-img img { width: 100%; height: 100%; object-fit: cover; }
+.book-cover-card-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; justify-content: center; }
+.book-cover-info-row { display: flex; flex-direction: column; gap: 4px; }
+.book-cover-info-row .info-label { font-size: 12px; color: #999; font-weight: 600; }
+.book-cover-info-row .info-value { font-size: 15px; color: #333; font-weight: 700; }
+.unit-list { margin: 0; padding-left: 18px; font-size: 13px; color: #444; line-height: 1.7; }
+.unit-list li.empty { color: #bbb; list-style: none; padding-left: 0; margin-left: -18px; }
 .reg-sub-badges { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-bottom: 8px; }
 .reg-sub-badges .sub-badge { background: rgba(255,255,255,0.22); padding: 3px 10px; border-radius: 999px; font-size: 12px; }
 .reg-period { font-size: 13px; opacity: 0.85; margin-bottom: 8px; }
@@ -699,7 +708,7 @@ function mapRegistration(reg) {
     teacher: reg.teacher_name || "",
     class_mode: reg.class_mode || "",
     schedule: (reg.schedule || []).map((s) => ({ day: s.day, start: s.start, end: s.end })),
-    books: (reg.books || []).map((b) => ({ title: b.title || "", progress: b.progress ?? 0, status: normalizeBookStatus(b.status), cover: b.cover || "" })),
+    books: (reg.books || []).map((b) => ({ title: b.title || "", progress: b.progress ?? 0, status: normalizeBookStatus(b.status), cover: b.cover || "", pages: b.pages ?? null })),
     attendance_summary: reg.attendance_summary || { present: 0, absent: 0, makeup: 0 },
     attendance_rows: (reg.attendance_rows || []).map((a) => ({ date: a.iso || a.date_iso || (typeof a.date === "string" && /^\d{4}-\d{2}-\d{2}/.test(a.date) ? a.date.slice(0, 10) : null), weekday: a.weekday || "", status: a.status || "" })),
     study_logs: (reg.study_logs || []).map((s) => ({ book: s.book || "", range: s.range || "", unit: s.unit || "", date: s.iso || null, note: s.note || "", body: normalizeFeedBody(s.body) })),
@@ -738,7 +747,7 @@ function mapReportToStudent(r) {
 async function loadReportFromServer() {
   const token = new URLSearchParams(window.location.search).get("token")
   if (!token) {
-    DATA_ERROR = "링크가 올바르지 않아요. 받으신 링크를 다시 확인해주세요."
+    DATA_ERROR = "링크가 올바르지 않아요. 받으신 링크를 다시 확인해��세요."
     return
   }
   try {
@@ -854,6 +863,10 @@ function renderBookDetail() {
     type: "평가", icon: "📄", date: t.date, book: t.book, range: t.range, unit: t.unit, note: t.note || t.title, pill: `정답 ${t.correct ?? 0} / ${t.total ?? 0}${(t.total && t.correct === t.total) ? " 💯" : ""}`, pillTone: scorePillTone(t.correct ?? 0, t.total ?? 0), photo: null, body: null,
   }))
   const sorted = items.slice().sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
+  const unitList = []
+  items.slice().sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)).forEach((l) => {
+    if (l.unit && !unitList.includes(l.unit)) unitList.push(l.unit)
+  })
   return `
     <div class="reg-detail-page">
       <div class="reg-header-bar">
@@ -882,6 +895,21 @@ function renderBookDetail() {
         </div>
       </div>
       <div class="reg-tab-content">
+        <div class="book-cover-card">
+          <div class="book-cover-card-img">${book.cover ? `<img src="${esc(book.cover)}" alt="${esc(selectedBookTitle)}">` : "📘"}</div>
+          <div class="book-cover-card-info">
+            <div class="book-cover-info-row">
+              <span class="info-label">과목 전체 페이지</span>
+              <span class="info-value">${book.pages ? `전체 ${book.pages}쪽` : "-"}</span>
+            </div>
+            <div class="book-cover-info-row">
+              <span class="info-label">단원목록</span>
+              <ul class="unit-list">
+                ${unitList.length ? unitList.map((u) => `<li>${esc(u)}</li>`).join("") : `<li class="empty">-</li>`}
+              </ul>
+            </div>
+          </div>
+        </div>
         <h2>📖 학습기록</h2>
         <div class="section-hint">이 교재와 관련된 학습 · 과제 · 평가 기록을 최근순으로 보여줍니다</div>
         ${(() => {
