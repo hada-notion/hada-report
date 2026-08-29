@@ -654,9 +654,12 @@ function mapRegistration(reg) {
     token: reg.access_token || "",
     emoji: splitClassNameEmoji(reg.class_name).emoji || pickClassColorEmoji(splitClassNameEmoji(reg.class_name).name),
     class_name: splitClassNameEmoji(reg.class_name).name || reg.class_name || "",
-    status: "수강중",
-    start: null,
-    end: null,
+    // 변경 후 (실제 값 반영)
+    status: reg.status === "수강 종료" ? "수강종료"
+      : reg.status === "수강 대기" ? "수강대기"
+      : "수강중",
+    start: reg.start_date || null,
+    end: reg.end_date || null,
     teacher: reg.teacher_name || "",
     class_mode: reg.class_mode || "",
     schedule: (reg.schedule || []).map((s) => ({ day: s.day, start: s.start, end: s.end })),
