@@ -712,7 +712,7 @@ function mapRegistration(reg) {
     teacher: reg.teacher_name || "",
     class_mode: reg.class_mode || "",
     schedule: (reg.schedule || []).map((s) => ({ day: s.day, start: s.start, end: s.end })),
-    books: (reg.books || []).map((b) => ({ title: b.title || "", progress: b.progress ?? 0, status: normalizeBookStatus(b.status), cover: b.cover || "", pages: b.pages ?? null })),
+    books: (reg.books || []).map((b) => ({ title: b.title || "", progress: b.progress ?? 0, status: normalizeBookStatus(b.status), cover: b.cover || "", pages: b.pages ?? null, units: b.units || [] })),
     attendance_summary: reg.attendance_summary || { present: 0, absent: 0, makeup: 0 },
     attendance_rows: (reg.attendance_rows || []).map((a) => ({ date: a.iso || a.date_iso || (typeof a.date === "string" && /^\d{4}-\d{2}-\d{2}/.test(a.date) ? a.date.slice(0, 10) : null), weekday: a.weekday || "", status: a.status || "" })),
     study_logs: (reg.study_logs || []).map((s) => ({ book: s.book || "", range: s.range || "", unit: s.unit || "", date: s.iso || null, note: s.note || "", body: normalizeFeedBody(s.body) })),
@@ -867,15 +867,24 @@ function renderBookDetail() {
     type: "평가", icon: "📄", date: t.date, book: t.book, range: t.range, unit: t.unit, note: t.note || t.title, pill: `정답 ${t.correct ?? 0} / ${t.total ?? 0}${(t.total && t.correct === t.total) ? " 💯" : ""}`, pillTone: scorePillTone(t.correct ?? 0, t.total ?? 0), photo: null, body: null,
   }))
   const sorted = items.slice().sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
-  const unitList = []
+  const studiedUnitKeys = new Set()
+  const studiedUnitList = []
   items.slice().sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)).forEach((l) => {
     if (!l.unit) return
-    const pageMatch = l.range ? l.range.match(/(\d+)/) : null
-    const startPage = pageMatch ? pageMatch[1] : null
     l.unit.split(/(?=\d+-\d+\.)/).map((s) => s.trim()).filter(Boolean).forEach((part) => {
-      if (!unitList.some((u) => u.text === part)) unitList.push({ text: part, page: startPage })
+      const m = part.match(/^(\d+-\d+)/)
+      const key = m ? m[1] : part
+      studiedUnitKeys.add(key)
+      if (!studiedUnitList.some((u) => u.text === part)) studiedUnitList.push({ text: part, done: true })
     })
   })
+  const unitList = (book.units && book.units.length)
+    ? book.units.map((u) => {
+        const m = u.match(/^(\d+-\d+)/)
+        const key = m ? m[1] : u
+        return { text: u, done: studiedUnitKeys.has(key) }
+      })
+    : studiedUnitList
   return `
     <div class="reg-detail-page">
       <div class="reg-header-bar">
@@ -915,7 +924,7 @@ function renderBookDetail() {
               <div class="book-cover-info-row">
                 <span class="info-label">단원목록</span>
                 <ul class="unit-list">
-                  ${unitList.length ? unitList.map((u) => `<li>${esc(u.text)}${u.page ? ` (${esc(u.page)})` : ""}</li>`).join("") : `<li class="empty">-</li>`}
+                  ${unitList.length ? unitList.map((u) => `<li>${esc(u.text)}${u.done ? " ✅" : ""}</li>`).join("") : `<li class="empty">-</li>`}
                 </ul>
               </div>
             </div>
@@ -1392,7 +1401,7 @@ function buildRegCalendarHtml(r, mode) {
         <div class="cal-summary-item present"><span class="num">${hwDone}</span><span class="lbl">완료</span></div>
         <div class="cal-summary-item absent"><span class="num">${monthHw.length - hwDone}</span><span class="lbl">미완료</span></div>
       </div>`
-  const dowLabels = ["일", "월", "화", "수", "목", "금", "토"]
+  const dowLabels = ["일", "월", "화", "수", "���", "금", "토"]
   const firstDow = new Date(y, m - 1, 1).getDay()
   const daysInMonth = new Date(y, m, 0).getDate()
   const cells = []
