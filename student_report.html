@@ -536,6 +536,13 @@ body:not(.reg-expanded) .cal-hint { animation: calExtraFadeIn 0.26s ease both; }
   </div>
 </div>
 
+<div class="modal-overlay" id="test-detail-modal" onclick="if(event.target===this) closeTestDetailModal()">
+  <div class="modal-sheet">
+    <h3><span id="test-detail-modal-title"></span><button class="modal-close" onclick="closeTestDetailModal()">✕</button></h3>
+    <div id="test-detail-modal-body"></div>
+  </div>
+</div>
+
 <script>
 // ===================== 목업 데이터 =====================
 // TODO(아이콘 소스 규칙): 일부 아이콘은 HTML에 직접 박힌 이모지이고, 일부는 노션 페이지 아이콘을 가져와야 함. 추후 아이콘 소스를 하나의 변수/규칙으로 통일하는 규칙을 정해야 함 (아직 미정).
@@ -896,7 +903,7 @@ function renderBookDetail() {
                       <div class="log-title">${esc([l.book, l.range].filter(Boolean).join(" · ") || "기록")}</div>
                       ${l.pill ? `<span class="log-pill ${l.pillTone || ""}">${esc(l.pill)}</span>` : ""}
                     </div>
-                    ${l.unit ? `<div class="log-context">${esc(`단원: ${l.unit}`)}</div>` : ""}
+                    ${l.unit ? `<div class="log-context">${esc(`• 단원: ${l.unit}`)}</div>` : ""}
                     ${l.note ? `<div class="log-note">${esc(l.note)}</div>` : ""}
                   </div>
                 </div>
@@ -1082,6 +1089,25 @@ function closeScheduleDayModal() {
   document.getElementById("schedule-day-modal").classList.remove("active")
 }
 
+let testChartPoints = []
+function showTestDetailModal(i) {
+  const p = testChartPoints[i]
+  if (!p) return
+  document.getElementById("test-detail-modal-title").textContent = p.label
+  document.getElementById("test-detail-modal-body").innerHTML = `
+    <div class="log-row 평가">
+      <div class="log-title-row"><div class="log-title">${esc([p.book, p.range].filter(Boolean).join(" · "))}</div><span class="log-pill ${scorePillTone(p.correct ?? 0, p.total ?? 0)}">정답 ${p.correct ?? 0} / ${p.total ?? 0}</span></div>
+      ${p.unit ? `<div class="log-context">${esc(`• 단원: ${p.unit}`)}</div>` : ""}
+      ${(p.note || p.title) ? `<div class="log-note">${esc(p.note || p.title)}</div>` : ""}
+      <div class="log-context">점수: ${p.avg != null ? p.avg.toFixed(1) : "-"}점</div>
+    </div>
+  `
+  document.getElementById("test-detail-modal").classList.add("active")
+}
+function closeTestDetailModal() {
+  document.getElementById("test-detail-modal").classList.remove("active")
+}
+
 function buildGradeTableHtml(grades) {
   return `
     <table class="grade-table">
@@ -1110,7 +1136,7 @@ function buildGradeChartHtml(grades) {
   const xStep = dates.length > 1 ? (width - padding * 2) / (dates.length - 1) : 0
   const scores = grades.map((g) => g.score)
   const rawMax = scores.length ? Math.max(...scores) : 100
-  // 표시 영역(카드) 높이에 여유가 있을수록 눈금을 촘촘하게, 좁을수록 성기게 잡습니다.
+  // 표시 영역(카드) 높이에 여유가 있을수록 눈금을 촘촘하게, 좁을���록 성기게 잡습니다.
   const targetTicks = rawMax > 0 && rawMax <= 60 ? 6 : 4
   const step = niceAxisStep(rawMax, targetTicks)
   const axisMax = Math.max(step, Math.ceil(rawMax / step) * step)
@@ -1430,11 +1456,13 @@ function computeRecentTestPoints(tests, asOfDate, count) {
   const recent = past.slice(-count)
   return recent.map((t) => ({
     label: (t.date || "").slice(5).replace("-", "."),
-    avg: t.total ? Math.round((t.correct / t.total) * 100) : null,
+    avg: t.total ? Math.round((t.correct / t.total) * 1000) / 10 : null,
     count: 1,
+    book: t.book, range: t.range, unit: t.unit, note: t.note, title: t.title, correct: t.correct, total: t.total,
   }))
 }
 function buildTestTrendChartHtml(points) {
+  testChartPoints = points
   const width = 400, height = 200, paddingX = 30, paddingTop = 20, paddingBottom = 34
   const xStep = points.length > 1 ? (width - paddingX * 2) / (points.length - 1) : 0
   const validAvgs = points.filter((p) => p.avg !== null).map((p) => p.avg)
@@ -1447,8 +1475,8 @@ function buildTestTrendChartHtml(points) {
   const xFor = (i) => paddingX + i * xStep
   const validPoints = points.map((p, i) => ({ ...p, i })).filter((p) => p.avg !== null)
   const path = validPoints.map((p) => `${xFor(p.i)},${yFor(p.avg)}`).join(" ")
-  const dots = validPoints.map((p) => `<circle cx="${xFor(p.i)}" cy="${yFor(p.avg)}" r="4" fill="#6c5ce7" />`).join("")
-  const valueLabels = validPoints.map((p) => `<text x="${xFor(p.i)}" y="${yFor(p.avg) - 10}" font-size="11" font-weight="700" fill="#6c5ce7" text-anchor="middle">${p.avg}점</text>`).join("")
+  const dots = validPoints.map((p) => `<circle cx="${xFor(p.i)}" cy="${yFor(p.avg)}" r="4" fill="#6c5ce7" style="pointer-events:none" /><circle cx="${xFor(p.i)}" cy="${yFor(p.avg)}" r="12" fill="transparent" style="cursor:pointer" onclick="showTestDetailModal(${p.i})" />`).join("")
+  const valueLabels = validPoints.map((p) => `<text x="${xFor(p.i)}" y="${yFor(p.avg) - 10}" font-size="11" font-weight="700" fill="#6c5ce7" text-anchor="middle" style="cursor:pointer" onclick="showTestDetailModal(${p.i})">${p.avg.toFixed(1)}점</text>`).join("")
   const gridLines = ticks.map((v) => `
     <line x1="${paddingX}" y1="${yFor(v)}" x2="${width - paddingX}" y2="${yFor(v)}" stroke="#eee" stroke-width="1" />
     <text x="2" y="${yFor(v) + 4}" font-size="9" fill="#bbb">${v}</text>
@@ -1581,7 +1609,7 @@ function buildDailyBodyHtml(r, date) {
       ${todaysLogs.length ? todaysLogs.map((l) => `
         <div class="log-row 학습">
           <div class="log-title-row"><div class="log-title">${esc([l.book, l.range].filter(Boolean).join(" · ") || "학습 기록")}</div></div>
-          ${l.unit ? `<div class="log-context">${esc(`단원: ${l.unit}`)}</div>` : ""}
+          ${l.unit ? `<div class="log-context">${esc(`• 단원: ${l.unit}`)}</div>` : ""}
           ${l.note ? `<div class="log-note">${esc(l.note)}</div>` : ""}
           ${buildFeedBodyHtml(l.body)}
         </div>
@@ -1593,9 +1621,9 @@ function buildDailyBodyHtml(r, date) {
       ${nextHomework ? `
         <div class="log-row 과제">
           <div class="log-title-row"><div class="log-title">${esc([nextHomework.book, nextHomework.range].filter(Boolean).join(" · "))}</div><span class="log-pill ${homeworkPillTone(nextHomework.status)}">${esc(nextHomework.status)}</span></div>
-          ${nextHomework.unit ? `<div class="log-context">${esc(`단원: ${nextHomework.unit}`)}</div>` : ""}
+          ${nextHomework.unit ? `<div class="log-context">${esc(`• 단원: ${nextHomework.unit}`)}</div>` : ""}
           ${(nextHomework.note || nextHomework.title) ? `<div class="log-note">${esc(nextHomework.note || nextHomework.title)}</div>` : ""}
-          <div class="log-context">마감: ${esc(nextHomework.due)}</div>
+          <div class="log-context">• 마감: ${esc(nextHomework.due)}</div>
         </div>
       ` : '<div class="empty">예정된 과제가 없습니다.</div>'}
     </div>
@@ -1605,7 +1633,7 @@ function buildDailyBodyHtml(r, date) {
       ${todaysTests.length ? todaysTests.map((t) => `
         <div class="log-row 평가">
           <div class="log-title-row"><div class="log-title">${esc([t.book, t.range].filter(Boolean).join(" · "))}</div><span class="log-pill ${scorePillTone(t.correct ?? 0, t.total ?? 0)}">정답 ${t.correct ?? 0} / ${t.total ?? 0}${(t.total && t.correct === t.total) ? " 💯" : ""}</span></div>
-          ${t.unit ? `<div class="log-context">${esc(`단원: ${t.unit}`)}</div>` : ""}
+          ${t.unit ? `<div class="log-context">${esc(`• 단원: ${t.unit}`)}</div>` : ""}
           ${(t.note || t.title) ? `<div class="log-note">${esc(t.note || t.title)}</div>` : ""}
         </div>
       `).join("") : '<div class="empty">이 날짜에 기록된 평가가 없습니다.</div>'}
@@ -1671,9 +1699,9 @@ function renderDetail() {
       <div class="section-hint">학습 · 과제 · 평가 기록을 최신순으로 보여줍니다</div>
       ${(() => {
         const items = []
-        studyLogs.forEach((l) => items.push({ type: "학습", icon: "📖", date: l.date, title: [l.book, l.range].filter(Boolean).join(" · ") || "학습 기록", context: l.unit ? `단원: ${l.unit}` : "", note: l.note, photo: l.photo, body: l.body, book: l.book }))
-        homework.forEach((h) => items.push({ type: "과제", icon: "📝", date: h.date || h.due, title: [h.book, h.range].filter(Boolean).join(" · "), context: h.unit ? `단원: ${h.unit}` : "", note: h.note || h.title || "", pill: h.status, pillTone: homeworkPillTone(h.status), book: h.book }))
-        tests.forEach((t) => items.push({ type: "평가", icon: "📄", date: t.date, title: [t.book, t.range].filter(Boolean).join(" · "), context: t.unit ? `단원: ${t.unit}` : "", note: t.note || t.title || "", pill: `정답 ${t.correct ?? 0} / ${t.total ?? 0}${(t.total && t.correct === t.total) ? " 💯" : ""}`, pillTone: scorePillTone(t.correct ?? 0, t.total ?? 0), book: t.book }))
+        studyLogs.forEach((l) => items.push({ type: "학습", icon: "📖", date: l.date, title: [l.book, l.range].filter(Boolean).join(" · ") || "학습 기록", context: l.unit ? `• 단원: ${l.unit}` : "", note: l.note, photo: l.photo, body: l.body, book: l.book }))
+        homework.forEach((h) => items.push({ type: "과제", icon: "📝", date: h.date || h.due, title: [h.book, h.range].filter(Boolean).join(" · "), context: h.unit ? `• 단원: ${h.unit}` : "", note: h.note || h.title || "", pill: h.status, pillTone: homeworkPillTone(h.status), book: h.book }))
+        tests.forEach((t) => items.push({ type: "평가", icon: "📄", date: t.date, title: [t.book, t.range].filter(Boolean).join(" · "), context: t.unit ? `• 단원: ${t.unit}` : "", note: t.note || t.title || "", pill: `정답 ${t.correct ?? 0} / ${t.total ?? 0}${(t.total && t.correct === t.total) ? " 💯" : ""}`, pillTone: scorePillTone(t.correct ?? 0, t.total ?? 0), book: t.book }))
         const sorted = items.slice().sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
         const groups = []
         sorted.forEach((l) => {
