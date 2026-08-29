@@ -903,7 +903,7 @@ function renderBookDetail() {
                       <div class="log-title">${esc([l.book, l.range].filter(Boolean).join(" · ") || "기록")}</div>
                       ${l.pill ? `<span class="log-pill ${l.pillTone || ""}">${esc(l.pill)}</span>` : ""}
                     </div>
-                    ${l.unit ? `<div class="log-context">${esc(`  • 단원: ${l.unit}`)}</div>` : ""}
+                    ${l.unit ? `<div class="log-context">${esc(`• 단원: ${l.unit}`)}</div>` : ""}
                     ${l.note ? `<div class="log-note">${esc(l.note)}</div>` : ""}
                   </div>
                 </div>
@@ -977,7 +977,7 @@ function basicInfoBodyHtml() {
 }
 
 function registrationsBodyHtml() {
-  const regs = STUDENT.registrations.slice().sort((a, b) => (a.status === "수강중" ? 0 : 1) - (b.status === "수강중" ? 0 : 1))
+  const regs = STUDENT.registrations.slice().sort((a, b) => (a.start || "").localeCompare(b.start || ""))
   return regs.map((r) => `
     <div class="reg-item" onclick="closeMenu(); openRegistration('${r.token}')">
       <div class="left">
@@ -1097,7 +1097,7 @@ function showTestDetailModal(i) {
   document.getElementById("test-detail-modal-body").innerHTML = `
     <div class="log-row 평가">
       <div class="log-title-row"><div class="log-title">${esc([p.book, p.range].filter(Boolean).join(" · "))}</div><span class="log-pill ${scorePillTone(p.correct ?? 0, p.total ?? 0)}">정답 ${p.correct ?? 0} / ${p.total ?? 0}</span></div>
-      ${p.unit ? `<div class="log-context">${esc(`  • 단원: ${p.unit}`)}</div>` : ""}
+      ${p.unit ? `<div class="log-context">${esc(`• 단원: ${p.unit}`)}</div>` : ""}
       ${(p.note || p.title) ? `<div class="log-note">${esc(p.note || p.title)}</div>` : ""}
       <div class="log-context">점수: ${p.avg != null ? p.avg.toFixed(1) : "-"}점</div>
     </div>
@@ -1609,7 +1609,7 @@ function buildDailyBodyHtml(r, date) {
       ${todaysLogs.length ? todaysLogs.map((l) => `
         <div class="log-row 학습">
           <div class="log-title-row"><div class="log-title">${esc([l.book, l.range].filter(Boolean).join(" · ") || "학습 기록")}</div></div>
-          ${l.unit ? `<div class="log-context">${esc(`  • 단원: ${l.unit}`)}</div>` : ""}
+          ${l.unit ? `<div class="log-context">${esc(`• 단원: ${l.unit}`)}</div>` : ""}
           ${l.note ? `<div class="log-note">${esc(l.note)}</div>` : ""}
           ${buildFeedBodyHtml(l.body)}
         </div>
@@ -1621,9 +1621,9 @@ function buildDailyBodyHtml(r, date) {
       ${nextHomework ? `
         <div class="log-row 과제">
           <div class="log-title-row"><div class="log-title">${esc([nextHomework.book, nextHomework.range].filter(Boolean).join(" · "))}</div><span class="log-pill ${homeworkPillTone(nextHomework.status)}">${esc(nextHomework.status)}</span></div>
-          ${nextHomework.unit ? `<div class="log-context">${esc(`  • 단원: ${nextHomework.unit}`)}</div>` : ""}
+          ${nextHomework.unit ? `<div class="log-context">${esc(`• 단원: ${nextHomework.unit}`)}</div>` : ""}
           ${(nextHomework.note || nextHomework.title) ? `<div class="log-note">${esc(nextHomework.note || nextHomework.title)}</div>` : ""}
-          <div class="log-context">  • 마감: ${esc(nextHomework.due)}</div>
+          <div class="log-context">• 마감: ${esc(nextHomework.due)}</div>
         </div>
       ` : '<div class="empty">예정된 과제가 없습니다.</div>'}
     </div>
@@ -1633,7 +1633,7 @@ function buildDailyBodyHtml(r, date) {
       ${todaysTests.length ? todaysTests.map((t) => `
         <div class="log-row 평가">
           <div class="log-title-row"><div class="log-title">${esc([t.book, t.range].filter(Boolean).join(" · "))}</div><span class="log-pill ${scorePillTone(t.correct ?? 0, t.total ?? 0)}">정답 ${t.correct ?? 0} / ${t.total ?? 0}${(t.total && t.correct === t.total) ? " 💯" : ""}</span></div>
-          ${t.unit ? `<div class="log-context">${esc(`  • 단원: ${t.unit}`)}</div>` : ""}
+          ${t.unit ? `<div class="log-context">${esc(`• 단원: ${t.unit}`)}</div>` : ""}
           ${(t.note || t.title) ? `<div class="log-note">${esc(t.note || t.title)}</div>` : ""}
         </div>
       `).join("") : '<div class="empty">이 날짜에 기록된 평가가 없습니다.</div>'}
@@ -1699,9 +1699,9 @@ function renderDetail() {
       <div class="section-hint">학습 · 과제 · 평가 기록을 최신순으로 보여줍니다</div>
       ${(() => {
         const items = []
-        studyLogs.forEach((l) => items.push({ type: "학습", icon: "📖", date: l.date, title: [l.book, l.range].filter(Boolean).join(" · ") || "학습 기록", context: l.unit ? `  • 단원: ${l.unit}` : "", note: l.note, photo: l.photo, body: l.body, book: l.book }))
-        homework.forEach((h) => items.push({ type: "과제", icon: "📝", date: h.date || h.due, title: [h.book, h.range].filter(Boolean).join(" · "), context: h.unit ? `  • 단원: ${h.unit}` : "", note: h.note || h.title || "", pill: h.status, pillTone: homeworkPillTone(h.status), book: h.book }))
-        tests.forEach((t) => items.push({ type: "평가", icon: "📄", date: t.date, title: [t.book, t.range].filter(Boolean).join(" · "), context: t.unit ? `  • 단원: ${t.unit}` : "", note: t.note || t.title || "", pill: `정답 ${t.correct ?? 0} / ${t.total ?? 0}${(t.total && t.correct === t.total) ? " 💯" : ""}`, pillTone: scorePillTone(t.correct ?? 0, t.total ?? 0), book: t.book }))
+        studyLogs.forEach((l) => items.push({ type: "학습", icon: "📖", date: l.date, title: [l.book, l.range].filter(Boolean).join(" · ") || "학습 기록", context: l.unit ? `• 단원: ${l.unit}` : "", note: l.note, photo: l.photo, body: l.body, book: l.book }))
+        homework.forEach((h) => items.push({ type: "과제", icon: "📝", date: h.date || h.due, title: [h.book, h.range].filter(Boolean).join(" · "), context: h.unit ? `• 단원: ${h.unit}` : "", note: h.note || h.title || "", pill: h.status, pillTone: homeworkPillTone(h.status), book: h.book }))
+        tests.forEach((t) => items.push({ type: "평가", icon: "📄", date: t.date, title: [t.book, t.range].filter(Boolean).join(" · "), context: t.unit ? `• 단원: ${t.unit}` : "", note: t.note || t.title || "", pill: `정답 ${t.correct ?? 0} / ${t.total ?? 0}${(t.total && t.correct === t.total) ? " 💯" : ""}`, pillTone: scorePillTone(t.correct ?? 0, t.total ?? 0), book: t.book }))
         const sorted = items.slice().sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
         const groups = []
         sorted.forEach((l) => {
