@@ -479,6 +479,7 @@ body:not(.reg-expanded) .cal-hint { animation: calExtraFadeIn 0.26s ease both; }
 .feed-video iframe { width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; display: block; border: 0; }
 .feed-video video { width: 100%; max-height: 420px; border-radius: 12px; display: block; background: #000; }
 .feed-video-caption { font-size: 11px; color: #999; margin-top: 4px; text-align: center; }
+.feed-divider { border-top: 1px solid #f1f0f6; margin: 12px 0; }
 .feed-lightbox { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; padding: 16px; cursor: zoom-out; }
 .feed-lightbox img { max-width: 100%; max-height: 100%; border-radius: 8px; }
 
@@ -1427,13 +1428,34 @@ function buildReportTabHtml(r) {
   const doneHomework = homeworkItems.filter((h) => h.status === "완료").length
   const hwRate = homeworkItems.length ? Math.round((doneHomework / homeworkItems.length) * 100) : 0
   const periodLabel = reportPeriod === "week" ? `${rangeStart} ~ ${rangeEnd}` : `${rangeStart.slice(0, 7)}`
-  return `
-    <h2>📊 보고서</h2>
-    <div class="section-hint">주간·월간 학습 리포트를 확인하세요</div>
+  const segToggleHtml = `
     <div class="seg-toggle">
       <button class="${reportPeriod === "week" ? "active" : ""}" onclick="setReportPeriod('week')">주간 보고서</button>
       <button class="${reportPeriod === "month" ? "active" : ""}" onclick="setReportPeriod('month')">월간 보고서</button>
+      <button class="${reportPeriod === "day" ? "active" : ""}" onclick="setReportPeriod('day')">일간 보고서</button>
     </div>
+  `
+  if (reportPeriod === "day") {
+    const dayDate = reportDayDate || MOCK_TODAY
+    return `
+      <h2>📊 보고서</h2>
+      <div class="section-hint">주간·월간·일간 학습 리포트를 확인하세요</div>
+      ${segToggleHtml}
+      <div class="cal-month-nav">
+        <button class="cal-nav-btn" onclick="navigateReportDay(1)">‹</button>
+        <div class="cal-month-title">${esc(formatDateLabel(dayDate))}</div>
+        <div class="cal-nav-right">
+          <button class="cal-today-btn" onclick="goReportCurrent()">오늘</button>
+          <button class="cal-nav-btn" ${dayDate >= MOCK_TODAY ? "disabled" : ""} onclick="navigateReportDay(-1)">›</button>
+        </div>
+      </div>
+      ${buildDailyBodyHtml(r, dayDate)}
+    `
+  }
+  return `
+    <h2>📊 보고서</h2>
+    <div class="section-hint">주간·월간·일간 학습 리포트를 확인하세요</div>
+    ${segToggleHtml}
     <div class="cal-month-nav">
       <button class="cal-nav-btn" onclick="navigateReportPeriod(1)">‹</button>
       <div class="cal-month-title">${esc(periodLabel)}</div>
@@ -1481,20 +1503,74 @@ function findLatestComment(r, date) {
   return comments[0] || (r.teacher_comments || [])[0] || null
 }
 
-function renderDailyReport() {
-  const r = STUDENT.registrations.find((x) => x.token === selectedToken)
-  const date = selectedCalDate
-  if (!r || !date) return renderIntro()
-
+function buildDailyBodyHtml(r, date) {
   const attendanceRow = (r.attendance_rows || []).find((a) => a.date === date)
-  const attendanceStatus = attendanceRow ? attendanceRow.status : "기록 없음"
-
   const dueHomeworkToday = (r.homework || []).filter((h) => h.due && h.due === date)
-
   const todaysLogs = (r.study_logs || []).filter((l) => l.date === date)
   const nextHomework = findNextHomework(r, date)
   const todaysTests = (r.tests || []).filter((t) => t.date === date)
   const comment = findLatestComment(r, date)
+
+  return `
+    <div class="status-box-row">
+      <div class="status-box">
+        <div class="label">✅ 출석상태</div>
+        <span class="badge ${esc(attendanceRow ? attendanceRow.status : "해당 없음")}">${esc(attendanceRow ? attendanceRow.status : "해당 없음")}</span>
+      </div>
+      <div class="status-box">
+        <div class="label">📝 과제상태</div>
+        ${dueHomeworkToday.length ? dueHomeworkToday.map((h) => `<span class="badge ${esc(h.status)}">${esc(h.status)}</span>`).join(" ") : `<span class="badge">해당 없음</span>`}
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📖 오늘 학습 내용</h2>
+      ${todaysLogs.length ? todaysLogs.map((l) => `
+        <div class="log-row 학습">
+          <div class="log-title-row"><div class="log-title">${esc([l.book, l.range].filter(Boolean).join(" · ") || "학습 기록")}</div></div>
+          ${l.unit ? `<div class="log-context">${esc(`단원: ${l.unit}`)}</div>` : ""}
+          ${l.note ? `<div class="log-note">${esc(l.note)}</div>` : ""}
+          ${buildFeedBodyHtml(l.body)}
+        </div>
+      `).join("") : '<div class="empty">이 날짜에 기록된 학습 내용이 없습니다.</div>'}
+    </div>
+
+    <div class="card">
+      <h2>📝 다음과제</h2>
+      ${nextHomework ? `
+        <div class="log-row 과제">
+          <div class="log-title-row"><div class="log-title">${esc([nextHomework.book, nextHomework.range].filter(Boolean).join(" · ") || nextHomework.title)}</div><span class="log-pill">${esc(nextHomework.status)}</span></div>
+          ${nextHomework.unit ? `<div class="log-context">${esc(`단원: ${nextHomework.unit}`)}</div>` : ""}
+          ${nextHomework.note ? `<div class="log-note">${esc(nextHomework.note)}</div>` : ""}
+          <div class="log-context">마감: ${esc(nextHomework.due)}</div>
+        </div>
+      ` : '<div class="empty">예정된 과제가 없습니다.</div>'}
+    </div>
+
+    <div class="card">
+      <h2>📄 평가</h2>
+      ${todaysTests.length ? todaysTests.map((t) => `
+        <div class="log-row 평가">
+          <div class="log-title-row"><div class="log-title">${esc([t.book, t.range].filter(Boolean).join(" · ") || t.title)}</div><span class="log-pill">정답 ${t.correct ?? 0} / ${t.total ?? 0}</span></div>
+          ${t.unit ? `<div class="log-context">${esc(`단원: ${t.unit}`)}</div>` : ""}
+          ${t.note ? `<div class="log-note">${esc(t.note)}</div>` : ""}
+        </div>
+      `).join("") : '<div class="empty">이 날짜에 기록된 평가가 없습니다.</div>'}
+      <div class="feed-divider"></div>
+      ${buildTestTrendChartHtml(computeRecentTestPoints(r.tests || [], date, 3))}
+    </div>
+
+    <div class="card">
+      <h2>💬 선생님 코멘트</h2>
+      ${comment ? `<div class="list-item"><div>${esc(comment.text)}</div><div class="meta">${esc(comment.date)} · ${esc(comment.by)}</div></div>` : '<div class="empty">등록된 코멘트가 없습니다.</div>'}
+    </div>
+  `
+}
+
+function renderDailyReport() {
+  const r = STUDENT.registrations.find((x) => x.token === selectedToken)
+  const date = selectedCalDate
+  if (!r || !date) return renderIntro()
 
   return `
     <div class="reg-detail-page">
@@ -1518,57 +1594,7 @@ function renderDailyReport() {
       <div class="reg-tab-content">
         <h2>📅 ${formatDateLabel(date)}</h2>
         <div class="section-hint">이 날의 출석 · 학습 · 과제 · 평가 기록을 한눈에 보여줍니다</div>
-        <div class="status-box-row">
-          <div class="status-box">
-            <div class="label">✅ 출석상태</div>
-            <span class="badge ${esc(attendanceRow ? attendanceRow.status : "해당 없음")}">${esc(attendanceRow ? attendanceRow.status : "해당 없음")}</span>
-          </div>
-          <div class="status-box">
-            <div class="label">📝 과제상태</div>
-            ${dueHomeworkToday.length ? dueHomeworkToday.map((h) => `<span class="badge ${esc(h.status)}">${esc(h.status)}</span>`).join(" ") : `<span class="badge">해당 없음</span>`}
-          </div>
-        </div>
-
-        <div class="card">
-          <h2>📖 오늘 학습 내용</h2>
-          ${todaysLogs.length ? todaysLogs.map((l) => `
-            <div class="log-row 학습">
-              <div class="log-title-row"><div class="log-title">${esc([l.book, l.range].filter(Boolean).join(" · ") || "학습 기록")}</div></div>
-              ${l.unit ? `<div class="log-context">${esc(`단원: ${l.unit}`)}</div>` : ""}
-              ${l.note ? `<div class="log-note">${esc(l.note)}</div>` : ""}
-              ${buildFeedBodyHtml(l.body)}
-            </div>
-          `).join("") : '<div class="empty">이 날짜에 기록된 학습 내용이 없습니다.</div>'}
-        </div>
-
-        <div class="card">
-          <h2>📝 다음과제</h2>
-          ${nextHomework ? `
-            <div class="log-row 과제">
-              <div class="log-title-row"><div class="log-title">${esc([nextHomework.book, nextHomework.range].filter(Boolean).join(" · ") || nextHomework.title)}</div><span class="log-pill">${esc(nextHomework.status)}</span></div>
-              ${nextHomework.unit ? `<div class="log-context">${esc(`단원: ${nextHomework.unit}`)}</div>` : ""}
-              ${nextHomework.note ? `<div class="log-note">${esc(nextHomework.note)}</div>` : ""}
-              <div class="log-context">마감: ${esc(nextHomework.due)}</div>
-            </div>
-          ` : '<div class="empty">예정된 과제가 없습니다.</div>'}
-        </div>
-
-        <div class="card">
-          <h2>📄 평가</h2>
-          ${buildTestTrendChartHtml(computeRecentTestPoints(r.tests || [], date, 3))}
-          ${todaysTests.length ? todaysTests.map((t) => `
-            <div class="log-row 평가">
-              <div class="log-title-row"><div class="log-title">${esc([t.book, t.range].filter(Boolean).join(" · ") || t.title)}</div><span class="log-pill">정답 ${t.correct ?? 0} / ${t.total ?? 0}</span></div>
-              ${t.unit ? `<div class="log-context">${esc(`단원: ${t.unit}`)}</div>` : ""}
-              ${t.note ? `<div class="log-note">${esc(t.note)}</div>` : ""}
-            </div>
-          `).join("") : '<div class="empty">이 날짜에 기록된 평가가 없습니다.</div>'}
-        </div>
-
-        <div class="card">
-          <h2>💬 선생님 코멘트</h2>
-          ${comment ? `<div class="list-item"><div>${esc(comment.text)}</div><div class="meta">${esc(comment.date)} · ${esc(comment.by)}</div></div>` : '<div class="empty">등록된 코멘트가 없습니다.</div>'}
-        </div>
+        ${buildDailyBodyHtml(r, date)}
       </div>
     </div>
   `
