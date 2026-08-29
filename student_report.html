@@ -152,9 +152,9 @@ body {
 .class-btn.primary { background: #fff; color: #6c5ce7; border-color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
 .class-btn .cb-left { display: flex; align-items: center; gap: 8px; }
 .class-btn .cb-emoji { font-size: 18px; }
-.class-btn .cb-name-wrap { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; }
+.class-btn .cb-name-wrap { display: flex; flex-direction: row; align-items: center; gap: 8px; }
 .class-btn .cb-class-name { font-weight: 700; font-size: 15px; }
-.class-btn .cb-period { font-weight: 400; font-size: 11px; color: #999; opacity: 1; }
+.class-btn .cb-period { font-weight: 400; font-size: 11px; color: #999; opacity: 1; white-space: nowrap; }
 .class-btn .cb-arrow { font-size: 16px; }
 
 .swipe-hint { position: absolute; bottom: var(--hint-gap); left: 0; right: 0; text-align: center; font-size: var(--hint-font); opacity: 0.8; cursor: pointer; }
@@ -357,6 +357,7 @@ body {
 .day-detail-item .meta { font-size: 11px; color: #888; margin-top: 2px; }
 .list-item { padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
 .list-item:last-child { border-bottom: none; }
+.list-item.empty-hint { color: #aaa; text-align: center; padding: 16px 0; }
 .list-item .title { font-weight: 600; margin-bottom: 3px; }
 .list-item .meta { color: #888; font-size: 12px; }
 .empty { color: #aaa; font-size: 13px; text-align: center; padding: 12px 0; }
@@ -590,7 +591,7 @@ function buildFeedVideoHtml(vid) {
   return `<div class="feed-video">${inner}${vid.caption ? `<div class="feed-video-caption">${esc(vid.caption)}</div>` : ""}</div>`
 }
 
-// 피드 본문 렌더링: 글 + 사진을 인스타그램 피드처럼 ���여준다.
+// 피드 본문 렌더링: 글 + 사진을 인스타그램 피드처럼 보여준다.
 // 이미지 1장은 크게, 2장 이상은 그리드로 배치한다.
 function buildFeedBodyHtml(body) {
   const items = normalizeFeedBody(body)
@@ -1073,7 +1074,7 @@ function buildGradeChartHtml(grades) {
   const xStep = dates.length > 1 ? (width - padding * 2) / (dates.length - 1) : 0
   const scores = grades.map((g) => g.score)
   const rawMax = scores.length ? Math.max(...scores) : 100
-  // 표시 영역(카드) 높이에 여유가 있��수록 눈금을 촘촘하게, 좁을수록 성기게 잡습니다.
+  // 표시 영역(카드) 높이에 여유가 있을수록 눈금을 촘촘하게, 좁을수록 성기게 잡습니다.
   const targetTicks = rawMax > 0 && rawMax <= 60 ? 6 : 4
   const step = niceAxisStep(rawMax, targetTicks)
   const axisMax = Math.max(step, Math.ceil(rawMax / step) * step)
@@ -1106,7 +1107,7 @@ function renderGradesPage() {
         <h2>📊 성적정보</h2>
         <div class="view-toggle">
           <button class="${gradeView === "table" ? "active" : ""}" onclick="setGradeView('table')">표로 보기</button>
-          <button class="${gradeView === "chart" ? "active" : ""}" onclick="setGradeView('chart')">차트로 ���기</button>
+          <button class="${gradeView === "chart" ? "active" : ""}" onclick="setGradeView('chart')">차트로 보기</button>
         </div>
         ${gradeView === "table" ? buildGradeTableHtml(grades) : buildGradeChartHtml(grades)}
       </div>
@@ -1419,7 +1420,7 @@ function buildReportTabHtml(r) {
   const periodLabel = reportPeriod === "week" ? `${rangeStart} ~ ${rangeEnd}` : `${rangeStart.slice(0, 7)}`
   return `
     <h2>📊 보고서</h2>
-    <div class="section-hint">주간·월간 ���습 리포트를 확인하세요</div>
+    <div class="section-hint">주간·월간 학습 리포트를 확인하세요</div>
     <div class="seg-toggle">
       <button class="${reportPeriod === "week" ? "active" : ""}" onclick="setReportPeriod('week')">주간 보고서</button>
       <button class="${reportPeriod === "month" ? "active" : ""}" onclick="setReportPeriod('month')">월간 보고서</button>
@@ -1448,7 +1449,10 @@ function buildReportTabHtml(r) {
       <h2>📄 평가 기록</h2>
       ${buildTestTrendChartHtml(computeTestTrendPoints(tests, reportPeriod, reportOffset))}
     </div>
-    ${comments.length ? `<div class="card"><h2>💬 선생님 코멘트</h2>${comments.map((c) => `<div class="list-item"><div>${esc(c.text)}</div><div class="meta">${esc(c.date)} · ${esc(c.by)}</div></div>`).join("")}</div>` : ""}
+    <div class="card">
+      <h2>💬 선생님 한마디</h2>
+      ${comments.length ? comments.map((c) => `<div class="list-item"><div>${esc(c.text)}</div><div class="meta">${esc(c.date)} · ${esc(c.by)}</div></div>`).join("") : `<div class="list-item empty-hint">아직 등록된 한마디가 없어요</div>`}
+    </div>
   `
 }
 
