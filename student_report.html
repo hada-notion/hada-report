@@ -150,12 +150,11 @@ body {
   backdrop-filter: blur(2px);
 }
 .class-btn.primary { background: #fff; color: #6c5ce7; border-color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
-.class-btn .cb-left { display: flex; align-items: center; gap: 8px; }
-.class-btn .cb-emoji { font-size: 18px; }
-.class-btn .cb-name-wrap { display: flex; flex-direction: row; align-items: center; gap: 8px; }
-.class-btn .cb-class-name { font-weight: 700; font-size: 15px; }
-.class-btn .cb-period { font-weight: 400; font-size: 11px; color: #999; opacity: 1; white-space: nowrap; }
-.class-btn .cb-arrow { font-size: 16px; }
+.class-btn .cb-left { display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden; }
+.class-btn .cb-emoji { font-size: 18px; flex-shrink: 0; }
+.class-btn .cb-name-wrap { display: flex; flex-direction: row; align-items: center; gap: 8px; min-width: 0; overflow: hidden; }
+.class-btn .cb-class-name { font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.class-btn .cb-arrow { font-size: 16px; flex-shrink: 0; }
 
 .swipe-hint { position: absolute; bottom: var(--hint-gap); left: 0; right: 0; text-align: center; font-size: var(--hint-font); opacity: 0.8; cursor: pointer; }
 .swipe-hint .chevron { display: block; font-size: var(--hint-chevron); animation: bounce 1.6s infinite; margin-top: var(--hint-chevron-gap); }
@@ -794,7 +793,7 @@ function closeMenu() { document.getElementById("menu").classList.remove("active"
 function renderMenuBody() {
   document.getElementById("menu-body").innerHTML = `
     <div class="menu-item-header ${expandedSection === "basic" ? "active" : ""}" onclick="toggleSection('basic')">
-      <span class="icon">👤</span><span style="flex:1">기본정보</span><span class="menu-item-chevron">${expandedSection === "basic" ? "▲" : "▼"}</span>
+      <span class="icon">���</span><span style="flex:1">기본정보</span><span class="menu-item-chevron">${expandedSection === "basic" ? "▲" : "▼"}</span>
     </div>
     ${expandedSection === "basic" ? `<div class="menu-item-body">${basicInfoBodyHtml()}</div>` : ""}
     <div class="menu-item-header ${expandedSection === "registrations" ? "active" : ""}" onclick="toggleSection('registrations')">
@@ -977,7 +976,13 @@ function basicInfoBodyHtml() {
 }
 
 function registrationsBodyHtml() {
-  const regs = STUDENT.registrations.slice().sort((a, b) => (a.start || "").localeCompare(b.start || ""))
+  const statusOrder = { "수강중": 0, "수강종료": 1, "수강대기": 2 }
+  const regs = STUDENT.registrations.slice().sort((a, b) => {
+    const sa = statusOrder[a.status] ?? 3
+    const sb = statusOrder[b.status] ?? 3
+    if (sa !== sb) return sa - sb
+    return (a.start || "").localeCompare(b.start || "")
+  })
   return regs.map((r) => `
     <div class="reg-item" onclick="closeMenu(); openRegistration('${r.token}')">
       <div class="left">
@@ -1232,7 +1237,7 @@ function buildWeekGridHtml(regs) {
 
 function renderIntro() {
   const s = STUDENT
-  const active = s.registrations.filter((r) => r.status === "수강중")
+  const active = s.registrations.filter((r) => r.status === "수강중").slice().sort((a, b) => (a.start || "").localeCompare(b.start || ""))
   return `
     <div class="scroll-container">
       <div class="snap-section intro-section" id="intro-section">
@@ -1247,7 +1252,6 @@ function renderIntro() {
                 <span class="cb-emoji">${r.emoji}</span>
                 <span class="cb-name-wrap">
                   <span class="cb-class-name">${esc(r.class_name)}</span>
-                  <span class="cb-period">${esc(r.start)} ~ ${r.end ? esc(r.end) : "현재"}</span>
                 </span>
               </span>
               <span class="badge ${esc(r.status)}">${esc(r.status)}</span>
