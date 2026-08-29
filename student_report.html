@@ -252,7 +252,7 @@ body {
 .cal-today-btn { background: #f0eefc; border: none; color: #6c5ce7; font-size: clamp(10px, 1.8vw, 12px); font-weight: 700; padding: 5px 10px; border-radius: 999px; cursor: pointer; }
 .cal-today-btn:active { background: #ece9ff; }
 .attendance-calendar .cal-day.완료 { background: #e6f7ee; color: #1e9e5c; font-weight: 700; }
-.attendance-calendar .cal-day.미완료 { background: #fdeaea; color: #e04b4b; font-weight: 700; }
+.attendance-calendar .cal-day.���완료 { background: #fdeaea; color: #e04b4b; font-weight: 700; }
 .attendance-calendar .cal-day.today:not(.selected) { box-shadow: inset 0 0 0 2px #a29bfe; }
 .cal-cell.today { box-shadow: inset 0 0 0 2px #a29bfe; }
 .seg-toggle { display: flex; background: #f0eefc; border-radius: 999px; padding: 3px; width: fit-content; margin: 0 auto 14px; }
@@ -323,7 +323,7 @@ body {
 .log-card { background: #fff; border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
 .log-row { display: flex; flex-direction: column; margin-bottom: 12px; }
 .log-row:last-child { margin-bottom: 0; }
-.log-top { display: flex; gap: 12px; align-items: stretch; }
+.log-top { display: flex; gap: 12px; align-items: stretch; min-height: 44px; }
 .log-icon { flex-shrink: 0; width: 44px; align-self: stretch; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
 .log-divider { border-top: 1px solid #f1f0f6; margin: 10px -16px 0; }
 .log-extra { padding: 10px 16px 0; margin: 0 -16px; }
@@ -358,7 +358,7 @@ body {
 .day-detail-item { display: flex; gap: 8px; align-items: flex-start; padding: 6px 0; border-bottom: 1px solid #f5f5f7; }
 .day-detail-item:last-child { border-bottom: none; }
 .day-detail-item .tag { font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 6px; white-space: nowrap; margin-top: 1px; }
-.day-detail-item .tag.학습 { background: #eef2ff; color: #4c51bf; }
+.day-detail-item .tag.��습 { background: #eef2ff; color: #4c51bf; }
 .day-detail-item .tag.과제 { background: #fff7e6; color: #c97c00; }
 .day-detail-item .tag.평가 { background: #ffeef0; color: #d1355e; }
 .day-detail-item .title { font-size: 13px; font-weight: 600; }
@@ -750,7 +750,7 @@ async function loadReportFromServer() {
       document.title = `${STUDENT.student_name} 학습 리포트`
     }
   } catch (e) {
-    DATA_ERROR = "데이터를 불러오는 중 문제가 생겼어요. 잠시 후 다시 시도해주세요."
+    DATA_ERROR = "데이터��� 불러오는 중 문제가 생겼어요. 잠시 후 다시 시도해주세요."
   }
 }
 
@@ -838,10 +838,10 @@ function renderBookDetail() {
     type: "학습", icon: "📖", date: l.date, book: l.book, range: l.range, unit: l.unit, note: l.note, pill: null, photo: l.photo, body: l.body,
   }))
   ;((r.homework) || []).filter((h) => normBookTitle(h.book) === targetTitle).forEach((h) => items.push({
-    type: "과제", icon: "📝", date: h.date || h.due, book: h.book, range: h.range, unit: h.unit, note: h.note, pill: h.status, pillTone: homeworkPillTone(h.status), photo: null, body: null,
+    type: "과제", icon: "📝", date: h.date || h.due, book: h.book, range: h.range, unit: h.unit, note: h.note || h.title, pill: h.status, pillTone: homeworkPillTone(h.status), photo: null, body: null,
   }))
   ;((r.tests) || []).filter((t) => normBookTitle(t.book) === targetTitle).forEach((t) => items.push({
-    type: "평가", icon: "📄", date: t.date, book: t.book, range: t.range, unit: t.unit, note: t.note, pill: `정답 ${t.correct ?? 0} / ${t.total ?? 0}${(t.total && t.correct === t.total) ? " 💯" : ""}`, pillTone: scorePillTone(t.correct ?? 0, t.total ?? 0), photo: null, body: null,
+    type: "평가", icon: "📄", date: t.date, book: t.book, range: t.range, unit: t.unit, note: t.note || t.title, pill: `정답 ${t.correct ?? 0} / ${t.total ?? 0}${(t.total && t.correct === t.total) ? " 💯" : ""}`, pillTone: scorePillTone(t.correct ?? 0, t.total ?? 0), photo: null, body: null,
   }))
   const sorted = items.slice().sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
   return `
@@ -1580,9 +1580,9 @@ function buildDailyBodyHtml(r, date) {
       <h2>📝 다음과제</h2>
       ${nextHomework ? `
         <div class="log-row 과제">
-          <div class="log-title-row"><div class="log-title">${esc([nextHomework.book, nextHomework.range].filter(Boolean).join(" · ") || nextHomework.title)}</div><span class="log-pill ${homeworkPillTone(nextHomework.status)}">${esc(nextHomework.status)}</span></div>
+          <div class="log-title-row"><div class="log-title">${esc([nextHomework.book, nextHomework.range].filter(Boolean).join(" · "))}</div><span class="log-pill ${homeworkPillTone(nextHomework.status)}">${esc(nextHomework.status)}</span></div>
           ${nextHomework.unit ? `<div class="log-context">${esc(`단원: ${nextHomework.unit}`)}</div>` : ""}
-          ${nextHomework.note ? `<div class="log-note">${esc(nextHomework.note)}</div>` : ""}
+          ${(nextHomework.note || nextHomework.title) ? `<div class="log-note">${esc(nextHomework.note || nextHomework.title)}</div>` : ""}
           <div class="log-context">마감: ${esc(nextHomework.due)}</div>
         </div>
       ` : '<div class="empty">예정된 과제가 없습니다.</div>'}
@@ -1592,9 +1592,9 @@ function buildDailyBodyHtml(r, date) {
       <h2>📄 평가</h2>
       ${todaysTests.length ? todaysTests.map((t) => `
         <div class="log-row 평가">
-          <div class="log-title-row"><div class="log-title">${esc([t.book, t.range].filter(Boolean).join(" · ") || t.title)}</div><span class="log-pill ${scorePillTone(t.correct ?? 0, t.total ?? 0)}">정답 ${t.correct ?? 0} / ${t.total ?? 0}${(t.total && t.correct === t.total) ? " 💯" : ""}</span></div>
+          <div class="log-title-row"><div class="log-title">${esc([t.book, t.range].filter(Boolean).join(" · "))}</div><span class="log-pill ${scorePillTone(t.correct ?? 0, t.total ?? 0)}">정답 ${t.correct ?? 0} / ${t.total ?? 0}${(t.total && t.correct === t.total) ? " 💯" : ""}</span></div>
           ${t.unit ? `<div class="log-context">${esc(`단원: ${t.unit}`)}</div>` : ""}
-          ${t.note ? `<div class="log-note">${esc(t.note)}</div>` : ""}
+          ${(t.note || t.title) ? `<div class="log-note">${esc(t.note || t.title)}</div>` : ""}
         </div>
       `).join("") : '<div class="empty">이 날짜에 기록된 평가가 없습니다.</div>'}
       <div class="feed-divider"></div>
@@ -1660,8 +1660,8 @@ function renderDetail() {
       ${(() => {
         const items = []
         studyLogs.forEach((l) => items.push({ type: "학습", icon: "📖", date: l.date, title: [l.book, l.range].filter(Boolean).join(" · ") || "학습 기록", context: l.unit ? `단원: ${l.unit}` : "", note: l.note, photo: l.photo, body: l.body, book: l.book }))
-        homework.forEach((h) => items.push({ type: "과제", icon: "📝", date: h.date || h.due, title: [h.book, h.range].filter(Boolean).join(" · ") || h.title, context: h.unit ? `단원: ${h.unit}` : "", note: h.note, pill: h.status, pillTone: homeworkPillTone(h.status), book: h.book }))
-        tests.forEach((t) => items.push({ type: "평가", icon: "📄", date: t.date, title: [t.book, t.range].filter(Boolean).join(" · ") || t.title, context: t.unit ? `단원: ${t.unit}` : "", note: t.note, pill: `정답 ${t.correct ?? 0} / ${t.total ?? 0}${(t.total && t.correct === t.total) ? " 💯" : ""}`, pillTone: scorePillTone(t.correct ?? 0, t.total ?? 0), book: t.book }))
+        homework.forEach((h) => items.push({ type: "과제", icon: "📝", date: h.date || h.due, title: [h.book, h.range].filter(Boolean).join(" · "), context: h.unit ? `단원: ${h.unit}` : "", note: h.note || h.title || "", pill: h.status, pillTone: homeworkPillTone(h.status), book: h.book }))
+        tests.forEach((t) => items.push({ type: "평가", icon: "📄", date: t.date, title: [t.book, t.range].filter(Boolean).join(" · "), context: t.unit ? `단원: ${t.unit}` : "", note: t.note || t.title || "", pill: `정답 ${t.correct ?? 0} / ${t.total ?? 0}${(t.total && t.correct === t.total) ? " 💯" : ""}`, pillTone: scorePillTone(t.correct ?? 0, t.total ?? 0), book: t.book }))
         const sorted = items.slice().sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
         const groups = []
         sorted.forEach((l) => {
