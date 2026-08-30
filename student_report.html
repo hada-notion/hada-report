@@ -1194,19 +1194,21 @@ function niceAxisStep(maxValue, targetTicks) {
 }
 function buildGradeChartHtml(grades) {
   const subjects = [...new Set(grades.map((g) => g.subject))]
-  const width = 400, height = 220, padding = 30
+  const width = 400, height = 240
+  const paddingLeft = 34, paddingRight = 14, paddingTop = 18, paddingBottom = 36
   const dates = [...new Set(grades.map((g) => g.date))].sort()
-  const xStep = dates.length > 1 ? (width - padding * 2) / (dates.length - 1) : 0
+  const plotWidth = width - paddingLeft - paddingRight
+  const xStep = dates.length > 1 ? plotWidth / (dates.length - 1) : 0
   const scores = grades.map((g) => g.score)
   const rawMax = scores.length ? Math.max(...scores) : 100
-  // 표시 영역(카드) 높이에 여유가 있을수록 눈금을 촘촘하게, 좁을���록 성기게 잡습니다.
+  // 표시 영역(카드) 높이에 여유가 있을수록 눈금을 촘촘하게, 좁을수록 성기게 잡습니다.
   const targetTicks = rawMax > 0 && rawMax <= 60 ? 6 : 4
   const step = niceAxisStep(rawMax, targetTicks)
   const axisMax = Math.max(step, Math.ceil(rawMax / step) * step)
   const tickCount = Math.round(axisMax / step)
   const ticks = Array.from({ length: tickCount + 1 }, (_, i) => i * step)
-  const yFor = (score) => height - padding - (score / axisMax) * (height - padding * 2)
-  const xFor = (date) => padding + dates.indexOf(date) * xStep
+  const yFor = (score) => height - paddingBottom - (score / axisMax) * (height - paddingTop - paddingBottom)
+  const xFor = (date) => dates.length > 1 ? paddingLeft + dates.indexOf(date) * xStep : paddingLeft + plotWidth / 2
   const lines = subjects.map((subj) => {
     const pts = grades.filter((g) => g.subject === subj).sort((a, b) => (a.date || "").localeCompare(b.date || ""))
     const path = pts.map((p) => `${xFor(p.date)},${yFor(p.score)}`).join(" ")
@@ -1215,12 +1217,21 @@ function buildGradeChartHtml(grades) {
     return `<polyline points="${path}" fill="none" stroke="${color}" stroke-width="2" />${dots}`
   }).join("")
   const gridLines = ticks.map((v) => `
-    <line x1="${padding}" y1="${yFor(v)}" x2="${width - padding}" y2="${yFor(v)}" stroke="#eee" stroke-width="1" />
-    <text x="2" y="${yFor(v) + 4}" font-size="9" fill="#bbb">${v}</text>
+    <line x1="${paddingLeft}" y1="${yFor(v)}" x2="${width - paddingRight}" y2="${yFor(v)}" stroke="#eee" stroke-width="1" />
+    <text x="${paddingLeft - 6}" y="${yFor(v) + 3}" font-size="9" fill="#bbb" text-anchor="end">${v}</text>
   `).join("")
+  const axisLines = `
+    <line x1="${paddingLeft}" y1="${paddingTop}" x2="${paddingLeft}" y2="${height - paddingBottom}" stroke="#ddd" stroke-width="1" />
+    <line x1="${paddingLeft}" y1="${height - paddingBottom}" x2="${width - paddingRight}" y2="${height - paddingBottom}" stroke="#ddd" stroke-width="1" />
+  `
+  const xAxisTicks = dates.map((d) => `
+    <text x="${xFor(d)}" y="${height - paddingBottom + 14}" font-size="9" fill="#bbb" text-anchor="middle">${esc(toShortDate(d))}</text>
+  `).join("")
+  const yAxisTitle = `<text x="6" y="${paddingTop - 6}" font-size="10" fill="#999" text-anchor="start">점수</text>`
+  const xAxisTitle = `<text x="${paddingLeft + plotWidth / 2}" y="${height - 4}" font-size="10" fill="#999" text-anchor="middle">날짜</text>`
   return `
     <div class="chart-legend">${subjects.map((s) => `<div class="legend-item"><span class="dot" style="background:${SUBJECT_COLORS[s] || "#999"}"></span>${esc(s)}</div>`).join("")}</div>
-    <div class="chart-wrap"><svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet">${gridLines}${lines}</svg></div>
+    <div class="chart-wrap"><svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet">${gridLines}${axisLines}${lines}${xAxisTicks}${yAxisTitle}${xAxisTitle}</svg></div>
   `
 }
 function renderGradesPage() {
