@@ -190,7 +190,7 @@ body {
 .header .sub-badge { background: rgba(255,255,255,0.22); padding: 3px 10px; border-radius: 999px; font-size: 12px; }
 .back-btn { display: inline-flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.22); color: #fff; border: none; padding: 6px 12px; border-radius: 999px; font-size: 13px; cursor: pointer; margin-bottom: 10px; }
 
-/* ===== 등록 상세 - 뎁스2 스와이프 섹션 ===== */
+/* ===== 등록 상세 - 뎁스2 스��이프 섹션 ===== */
 .reg-header-section { background: linear-gradient(160deg, #6c5ce7, #a29bfe 65%, #cbb9ff); color: #fff; text-align: center; }
 .reg-header-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .reg-back-btn { flex-shrink: 0; background: rgba(255,255,255,0.22); color: #fff; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 16px; font-weight: 600; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s ease; }
@@ -1205,6 +1205,11 @@ function buildGradeChartHtml(grades) {
   const width = 400, height = 240
   const paddingLeft = 34, paddingRight = 14, paddingTop = 18, paddingBottom = 36
   const dates = [...new Set(grades.map((g) => g.date))].sort()
+  // X축에는 날짜 대신 해당 날짜의 시험명(예: "중1 1학기 중간고사")을 표시하고, 시험명이 없으면 날짜로 폴백합니다. dates가 이미 날짜순(ISO 문자열 sort)으로 정렬돼 있으므로 시간순이 유지됩니다.
+  const dateExamLabels = dates.map((d) => {
+    const match = grades.find((g) => g.date === d && g.exam_name)
+    return match ? match.exam_name : toShortDate(d)
+  })
   const plotWidth = width - paddingLeft - paddingRight
   const xStep = dates.length > 1 ? plotWidth / (dates.length - 1) : 0
   const scores = grades.map((g) => g.score)
@@ -1232,11 +1237,11 @@ function buildGradeChartHtml(grades) {
     <line x1="${paddingLeft}" y1="${paddingTop}" x2="${paddingLeft}" y2="${height - paddingBottom}" stroke="#ddd" stroke-width="1" />
     <line x1="${paddingLeft}" y1="${height - paddingBottom}" x2="${width - paddingRight}" y2="${height - paddingBottom}" stroke="#ddd" stroke-width="1" />
   `
-  const xAxisTicks = dates.map((d) => `
-    <text x="${xFor(d)}" y="${height - paddingBottom + 14}" font-size="9" fill="#bbb" text-anchor="middle">${esc(toShortDate(d))}</text>
+  const xAxisTicks = dates.map((d, i) => `
+    <text x="${xFor(d)}" y="${height - paddingBottom + 14}" font-size="9" fill="#bbb" text-anchor="middle">${esc(dateExamLabels[i])}</text>
   `).join("")
   const yAxisTitle = `<text x="6" y="${paddingTop - 6}" font-size="10" fill="#999" text-anchor="start">점수</text>`
-  const xAxisTitle = `<text x="${paddingLeft + plotWidth / 2}" y="${height - 4}" font-size="10" fill="#999" text-anchor="middle">날짜</text>`
+  const xAxisTitle = `<text x="${paddingLeft + plotWidth / 2}" y="${height - 4}" font-size="10" fill="#999" text-anchor="middle">시험</text>`
   return `
     <div class="chart-legend">${subjects.map((s) => `<div class="legend-item"><span class="dot" style="background:${SUBJECT_COLORS[s] || "#999"}"></span>${esc(s)}</div>`).join("")}</div>
     <div class="chart-wrap"><svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet">${gridLines}${axisLines}${lines}${xAxisTicks}${yAxisTitle}${xAxisTitle}</svg></div>
