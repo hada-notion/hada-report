@@ -282,6 +282,8 @@
       <div class="app-bar-actions">
         <button onclick="loadStudents()">🔄 새로고침</button>
         <button onclick="sendAlimtalkBulk()">📩 오늘 수업 알림톡 일괄 전송</button>
+        <button onclick="toggleReportLinkBulk(true)">🔒 필터 링크 일괄 비활성화</button>
+        <button onclick="toggleReportLinkBulk(false)">🔓 필터 링크 일괄 활성화</button>
         <button onclick="openPasswordModal()">🔑 비밀번호 변경</button>
         <button class="logout" onclick="logout()">로그아웃</button>
       </div>
@@ -322,7 +324,7 @@
 <div class="modal-overlay" id="confirm-modal">
   <div class="modal-box">
     <h3>⚠️ 보고서를 최신화할까요?</h3>
-    <p>최신화하면 새 링크가 발급되어<br><strong>기존 학부모 링크는 더 이상 사용할 수 없습니다.</strong><br>계속하시겠습니까?</p>
+    <p>최신화해도 <strong>기존 학부모 링크(주소)는 같이 유지됩니다.</strong><br>링크 안의 내용(학습 상황 데이터)만 갱신됩니다.<br>진행하시겠습니까?</p>
     <div class="modal-actions">
       <button class="cancel" onclick="closeConfirmModal()">취소</button>
       <button class="confirm" onclick="confirmRefresh()">최신화</button>
@@ -829,6 +831,7 @@ function renderDesktopRow(i, isCollapsed) {
         <button class="action ${status === "fail" ? "retry" : ""}" id="btn-${i}" onclick='onActionClick(${i})'>${actionLabel(status)}</button>
         <button class="secondary" id="copy-${i}" onclick='copyLink(${JSON.stringify(s.accessToken || "")})' ${s.accessToken ? "" : "disabled"}>링크 복사</button>
         <button class="secondary" id="alimtalk-${i}" onclick='sendAlimtalk(${i})' ${s.hasClassToday ? "" : "disabled"}>📩 알림톡 전송</button>
+        <button class="secondary" id="linktoggle-${i}" onclick='toggleReportLink(${i})' ${s.accessToken ? "" : "disabled"}>${s.linkDisabled ? "🔓 링크 활성화" : "🔒 링크 비활성화"}</button>
       </td>
     </tr>
   `
@@ -874,6 +877,7 @@ function renderMobileReg(i, isCollapsed) {
         ${s.accessToken ? `<a class="link" style="align-self:center" href="${reportUrl(s.accessToken)}" target="_blank">보기</a>` : ""}
         <button class="secondary" onclick='copyLink(${JSON.stringify(s.accessToken || "")})' ${s.accessToken ? "" : "disabled"}>링크 복사</button>
         <button class="secondary" id="malimtalk-${i}" onclick='sendAlimtalk(${i})' ${s.hasClassToday ? "" : "disabled"}>📩 알림톡 전송</button>
+        <button class="secondary" id="mlinktoggle-${i}" onclick='toggleReportLink(${i})' ${s.accessToken ? "" : "disabled"}>${s.linkDisabled ? "🔓 링크 활성화" : "🔒 링크 비활성화"}</button>
       </div>
     </div>
   `
@@ -1072,6 +1076,66 @@ async function sendAlimtalkOne(index) {
   } catch (err) {
     alert("알림톡 전송 오류: " + err.message)
     ;[btn, mbtn].forEach((b) => { if (b) { b.disabled = false; b.textContent = "📩 알림톡 전송" } })
+  }
+}
+
+// ---------------- Actions: report link enable/disable ----------------
+// 링크(access_token) 값 자신은 바뀌지 않습니다. 단지 노출 모드(link_disabled) 플래그만 변경합니다.
+async function callToggleReportLink(registrationIds, disabled) {
+  const adminKey = getAdminKey()
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/toggle-report-link`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-admin-key": adminKey,
+      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+      "apikey": SUPABASE_ANON_KEY,
+    },
+    body: JSON.stringify({ registrationIds, disabled }),
+  })
+  if (!res.ok) throw new Error(`실패: ${res.status} ${await res.text()}`)
+  return res.json()
+}
+
+async function toggleReportLink(index) {
+  const s = STUDENTS[index]
+  if (!s.accessToken) return
+  const nextDisabled = !s.linkDisabled
+  const btn = document.getElementById(`linktoggle-${index}`)
+  const mbtn = document.getElementById(`mlinktoggle-${index}`)
+  ;[btn, mbtn].forEach((b) => { if (b) b.disabled = true })
+  try {
+    await callToggleReportLink([s.registrationId], nextDisabled)
+    s.linkDisabled = nextDisabled
+    showToast(nextDisabled ? `${s.studentName} 링크를 비활성화하였습니다.` : `${s.studentName} 링크를 활성화하였습니다.`)
+    renderAll()
+  } catch (err) {
+    alert("링크 상태 변경 오류: " + err.message)
+    ;[btn, mbtn].forEach((b) => { if (b) b.disabled = false })
+  }
+}
+
+// 현재 필터에 해당하는(링크가 있는) 학생 전원을 일괄 활성화/비활성화합니다.
+async function toggleReportLinkBulk(disabled) {
+  const filters = currentFilters()
+  const targets = STUDENTS
+    .map((s, i) => i)
+    .filter((i) => matchesFilters(STUDENTS[i], filters))
+    .filter((i) => STUDENTS[i].accessToken && STUDENTS[i].linkDisabled !== disabled)
+  if (!targets.length) {
+    showToast(disabled ? "비활성화할 링크가 없습니다." : "활성화할 링크가 없습니다.")
+    return
+  }
+  const verb = disabled ? "비활성화" : "활성화"
+  if (!confirm(`필터에 맞는 ${targets.length}개 링크를 일괄 ${verb}하시겠습니까?`)) return
+  try {
+    const registrationIds = targets.map((i) => STUDENTS[i].registrationId)
+    await callToggleReportLink(registrationIds, disabled)
+    targets.forEach((i) => { STUDENTS[i].linkDisabled = disabled })
+    showToast(`${targets.length}개 링크를 ${verb}했습니다.`)
+    renderAll()
+  } catch (err) {
+    alert("일괄 링크 상태 변경 오류: " + err.message)
   }
 }
 
