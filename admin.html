@@ -600,7 +600,7 @@ function courseTagHtml(status) {
 function actionLabel(status) {
   if (status === "none") return "보고서 생성"
   if (status === "fail") return "다시 시도"
-  return "최신화" // ok, stale
+  return "🔄️" // ok, stale
 }
 
 // ---------------- Load & render ----------------
@@ -839,10 +839,10 @@ function renderDesktopRow(i, isCollapsed) {
       <td id="link-${i}">${s.accessToken ? `<a class="link" href="${reportUrl(s.accessToken)}" target="_blank">보기</a>` : "-"}</td>
       <td>
         <button class="action ${status === "fail" ? "retry" : ""}" id="btn-${i}" onclick='onActionClick(${i})'>${actionLabel(status)}</button>
-        <button class="secondary" id="copy-${i}" onclick='copyLink(${JSON.stringify(s.accessToken || "")})' ${s.accessToken ? "" : "disabled"}>링크 복사</button>
-        <button class="secondary" id="alimtalk-${i}" onclick='sendAlimtalk(${i})' ${s.hasClassToday ? "" : "disabled"}>📩 알림톡 전송</button>
+        <button class="secondary" id="copy-${i}" onclick='copyLink(${JSON.stringify(s.accessToken || "")})' ${s.accessToken ? "" : "disabled"}>🔗</button>
+        <button class="secondary" id="alimtalk-${i}" onclick='sendAlimtalk(${i})' ${s.hasClassToday ? "" : "disabled"}>📩</button>
         <div class="menu-wrap">
-          <button class="secondary" id="gear-${i}" onclick='toggleMenu(event, "menu-${i}")' ${s.accessToken ? "" : "disabled"}>⚙️ 설정</button>
+          <button class="secondary" id="gear-${i}" onclick='toggleMenu(event, "menu-${i}")' ${s.accessToken ? "" : "disabled"}>⚙️</button>
           <div class="dropdown-menu" id="menu-${i}">
             <button onclick='closeAllMenus(); setLinkStatus(${i}, false)'>🔓 활성화</button>
             <button onclick='closeAllMenus(); setLinkStatus(${i}, true)'>🔒 비활성화</button>
@@ -892,10 +892,10 @@ function renderMobileReg(i, isCollapsed) {
       <div class="m-actions">
         <button class="action ${status === "fail" ? "retry" : ""}" id="mbtn-${i}" onclick='onActionClick(${i})'>${actionLabel(status)}</button>
         ${s.accessToken ? `<a class="link" style="align-self:center" href="${reportUrl(s.accessToken)}" target="_blank">보기</a>` : ""}
-        <button class="secondary" onclick='copyLink(${JSON.stringify(s.accessToken || "")})' ${s.accessToken ? "" : "disabled"}>링크 복사</button>
-        <button class="secondary" id="malimtalk-${i}" onclick='sendAlimtalk(${i})' ${s.hasClassToday ? "" : "disabled"}>📩 알림톡 전송</button>
+        <button class="secondary" onclick='copyLink(${JSON.stringify(s.accessToken || "")})' ${s.accessToken ? "" : "disabled"}>🔗</button>
+        <button class="secondary" id="malimtalk-${i}" onclick='sendAlimtalk(${i})' ${s.hasClassToday ? "" : "disabled"}>📩</button>
         <div class="menu-wrap">
-          <button class="secondary" id="mgear-${i}" onclick='toggleMenu(event, "mmenu-${i}")' ${s.accessToken ? "" : "disabled"}>⚙️ 설정</button>
+          <button class="secondary" id="mgear-${i}" onclick='toggleMenu(event, "mmenu-${i}")' ${s.accessToken ? "" : "disabled"}>⚙️</button>
           <div class="dropdown-menu" id="mmenu-${i}">
             <button onclick='closeAllMenus(); setLinkStatus(${i}, false)'>🔓 활성화</button>
             <button onclick='closeAllMenus(); setLinkStatus(${i}, true)'>🔒 비활성화</button>
@@ -1080,7 +1080,7 @@ async function sendAlimtalkOne(index) {
     renderAll()
   } catch (err) {
     alert("알림톡 전송 오류: " + err.message)
-    ;[btn, mbtn].forEach((b) => { if (b) { b.disabled = false; b.textContent = "📩 알림톡 전송" } })
+    ;[btn, mbtn].forEach((b) => { if (b) { b.disabled = false; b.textContent = "📩" } })
   }
 }
 
