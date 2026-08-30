@@ -269,6 +269,7 @@
       </div>
       <div class="app-bar-actions">
         <button onclick="loadStudents()">🔄 새로고침</button>
+        <button onclick="openPasswordModal()">🔑 비밀번호 변경</button>
         <button class="logout" onclick="logout()">로그아웃</button>
       </div>
     </div>
@@ -312,6 +313,21 @@
     <div class="modal-actions">
       <button class="cancel" onclick="closeConfirmModal()">취소</button>
       <button class="confirm" onclick="confirmRefresh()">최신화</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="password-modal">
+  <div class="modal-box">
+    <h3>🔑 비밀번호 변경</h3>
+    <p>현재 비밀번호와 새 비밀번호(4자 이상)를 입력하세요.</p>
+    <input type="password" id="pw-current" placeholder="현재 비밀번호" style="width:100%;padding:9px 10px;margin-bottom:8px;border:1px solid #ddd;border-radius:8px;font-size:13px;">
+    <input type="password" id="pw-new" placeholder="새 비밀번호 (4자 이상)" style="width:100%;padding:9px 10px;margin-bottom:8px;border:1px solid #ddd;border-radius:8px;font-size:13px;">
+    <input type="password" id="pw-new-confirm" placeholder="새 비밀번호 확인" style="width:100%;padding:9px 10px;margin-bottom:8px;border:1px solid #ddd;border-radius:8px;font-size:13px;">
+    <div class="login-error" id="pw-error" style="min-height:16px;color:#e04b4b;font-size:12px;margin-bottom:8px;"></div>
+    <div class="modal-actions">
+      <button class="cancel" onclick="closePasswordModal()">취소</button>
+      <button class="confirm" id="pw-submit-btn" onclick="submitPasswordChange()">바꾸기</button>
     </div>
   </div>
 </div>
@@ -415,6 +431,64 @@ function logout(silent) {
   sessionStorage.removeItem(ADMIN_KEY_STORAGE)
   sessionStorage.removeItem(LAST_ACTIVITY_STORAGE)
   showLoginScreen(silent ? "장시간 사용하지 않아 자동 로그아웃되었습니다." : "")
+}
+
+// ---------------- 비밀번호 변경 ----------------
+function openPasswordModal() {
+  document.getElementById("pw-current").value = ""
+  document.getElementById("pw-new").value = ""
+  document.getElementById("pw-new-confirm").value = ""
+  document.getElementById("pw-error").textContent = ""
+  document.getElementById("password-modal").classList.add("active")
+}
+
+function closePasswordModal() {
+  document.getElementById("password-modal").classList.remove("active")
+}
+
+async function submitPasswordChange() {
+  const current = document.getElementById("pw-current").value
+  const next = document.getElementById("pw-new").value
+  const confirmNext = document.getElementById("pw-new-confirm").value
+  const errEl = document.getElementById("pw-error")
+  const btn = document.getElementById("pw-submit-btn")
+
+  if (!current) { errEl.textContent = "현재 비밀번호를 입력하세요."; return }
+  if (!next || next.length < 4) { errEl.textContent = "새 비밀번호는 4자 이상이어야 합니다."; return }
+  if (next !== confirmNext) { errEl.textContent = "새 비밀번호가 서로 다릅니다."; return }
+
+  errEl.textContent = ""
+  btn.disabled = true
+  btn.textContent = "바꾸는 중..."
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/update-admin-key`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-key": current,
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        "apikey": SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ newPassword: next }),
+    })
+    if (res.status === 401) {
+      errEl.textContent = "현재 비밀번호가 올바르지 않습니다."
+      return
+    }
+    if (!res.ok) throw new Error(`서버 오류: ${res.status} ${await res.text()}`)
+
+    // 새 비밀번호로 로그인 상태를 갱신해서 다음 동작도 끄지지 않게 이어지게 합니다.
+    sessionStorage.setItem(ADMIN_KEY_STORAGE, next)
+    markActivity()
+    closePasswordModal()
+    showToast("비밀번호가 바뀌었습니다.")
+  } catch (err) {
+    errEl.textContent = "실패: " + err.message
+  } finally {
+    btn.disabled = false
+    btn.textContent = "바꾸기"
+  }
 }
 
 document.getElementById("login-input").addEventListener("keydown", (e) => {
