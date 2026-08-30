@@ -1165,14 +1165,17 @@ function showTestDetailModal(i) {
   const p = testChartPoints[i]
   if (!p) return
   document.getElementById("test-detail-modal-title").textContent = p.label
-  document.getElementById("test-detail-modal-body").innerHTML = `
-    <div class="log-row 평가">
-      <div class="log-title-row"><div class="log-title">${esc([p.book, p.range].filter(Boolean).join(" · "))}</div><span class="log-pill ${scorePillTone(p.correct ?? 0, p.total ?? 0)}">${scorePillText(p.correct ?? 0, p.total ?? 0)}</span></div>
-      ${p.unit ? `<div class="log-context">${esc(`  • 단원: ${p.unit}`)}</div>` : ""}
-      ${(p.note || p.title) ? `<div class="log-note">${esc(p.note || p.title)}</div>` : ""}
-      <div class="log-context">  • 점수: ${p.avg != null ? p.avg.toFixed(1) : "-"}점</div>
-    </div>
-  `
+  const items = p.items || []
+  document.getElementById("test-detail-modal-body").innerHTML = items.length
+    ? items.map((t) => `
+      <div class="log-row 평가">
+        <div class="log-title-row"><div class="log-title">${esc([t.book, t.range].filter(Boolean).join(" · "))}</div><span class="log-pill ${scorePillTone(t.correct ?? 0, t.total ?? 0)}">${scorePillText(t.correct ?? 0, t.total ?? 0)}</span></div>
+        ${t.unit ? `<div class="log-context">${esc(`  • 단원: ${t.unit}`)}</div>` : ""}
+        ${(t.note || t.title) ? `<div class="log-note">${esc(t.note || t.title)}</div>` : ""}
+        <div class="log-context">  • 날짜: ${esc(t.date || "-")}</div>
+      </div>
+    `).join("")
+    : `<div class="log-row 평가"><div class="log-note">해당 기간 평가 기록이 없습니다.</div></div>`
   document.getElementById("test-detail-modal").classList.add("active")
 }
 function closeTestDetailModal() {
@@ -1533,7 +1536,7 @@ function computeTestTrendPoints(tests, periodType, baseOffset) {
     }
     const items = tests.filter((t) => t.date >= rangeStart && t.date <= rangeEnd)
     const avg = items.length ? Math.round(items.reduce((s, t) => s + (t.total ? (t.correct / t.total) * 100 : 0), 0) / items.length) : null
-    points.push({ label, avg, count: items.length })
+    points.push({ label, avg, count: items.length, items })
   }
   return points
 }
@@ -1544,7 +1547,7 @@ function computeRecentTestPoints(tests, asOfDate, count) {
     label: (t.date || "").slice(5).replace("-", "."),
     avg: t.total ? Math.round((t.correct / t.total) * 1000) / 10 : null,
     count: 1,
-    book: t.book, range: t.range, unit: t.unit, note: t.note, title: t.title, correct: t.correct, total: t.total,
+    items: [t],
   }))
 }
 function buildTestTrendChartHtml(points) {
