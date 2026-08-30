@@ -605,6 +605,12 @@ function scorePillTone(correct, total) {
   if (pct >= 60) return "tone-orange"
   return "tone-red"
 }
+// 실제 점수(정답률)를 "N점 (correct/total)" 형식으로 표기한다. (100점이라고 별도 아이콘을 붙이지 않는다.)
+function scorePillText(correct, total) {
+  if (!total) return `정답 ${correct ?? 0} / 0`
+  const pct = Math.round(((correct ?? 0) / total) * 100)
+  return `${pct}점 (${correct ?? 0}/${total})`
+}
 // 노션 학습기록 "페이지 본문"을 피드용 부록으로 정리한다.
 // Edge Function 이 body: [{ type: "text" | "image", text?, url?, caption? }] 로 내려준다.
 function normalizeFeedBody(rawBody) {
@@ -719,7 +725,7 @@ function mapRegistration(reg) {
     homework: (reg.homework || []).map((h) => ({ title: h.title || "", book: h.book || "", range: h.range || "", unit: h.unit || "", note: h.note || "", due: h.due_iso || null, status: h.status || "미제출" })),
     tests: (reg.tests || []).map((t) => ({ title: t.title || "", book: t.book || "", range: t.range || "", unit: t.unit || "", note: t.note || "", date: t.iso || null, correct: t.correct ?? 0, total: t.total ?? 0 })),
     teacher_comments: (reg.teacher_comments || []).map((c) => ({ text: c.text || "", date: c.iso || null, by: c.by || "" })),
-    // 주간/월간 보고서: �����고서(학원) DB 자체의 "선생님 한마디"를 보고서 구분·학습 기간과 함께 보관한다.
+    // 주간/월간 보고서: ������고서(학원) DB 자체의 "선생님 한마디"를 보고서 구분·학습 기간과 함께 보관한다.
     report_comments: (reg.report_comments || []).map((c) => ({ kind: c.kind || "", start: c.start || null, end: c.end || c.start || null, comment: c.comment || "" })),
   }
 }
@@ -866,7 +872,7 @@ function renderBookDetail() {
     type: "과제", icon: "📝", date: h.date || h.due, book: h.book, range: h.range, unit: h.unit, note: h.note || h.title, pill: h.status, pillTone: homeworkPillTone(h.status), photo: null, body: null,
   }))
   ;((r.tests) || []).filter((t) => normBookTitle(t.book) === targetTitle).forEach((t) => items.push({
-    type: "평가", icon: "📄", date: t.date, book: t.book, range: t.range, unit: t.unit, note: t.note || t.title, pill: `정답 ${t.correct ?? 0} / ${t.total ?? 0}${(t.total && t.correct === t.total) ? " 💯" : ""}`, pillTone: scorePillTone(t.correct ?? 0, t.total ?? 0), photo: null, body: null,
+    type: "평가", icon: "📄", date: t.date, book: t.book, range: t.range, unit: t.unit, note: t.note || t.title, pill: scorePillText(t.correct ?? 0, t.total ?? 0), pillTone: scorePillTone(t.correct ?? 0, t.total ?? 0), photo: null, body: null,
   }))
   const sorted = items.slice().sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
   const studiedUnitKeys = new Set()
@@ -1082,7 +1088,7 @@ function addDaysStr(dateStr, days) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
 }
 
-// 이모지는 카테고리 '이름'과 분리해서 관리������. ��션 원본의 이모지 표기가 조금 달라져도
+// 이모지는 카테고리 '이름'과 분리해서 관���������. ��션 원본의 이모지 표기가 조금 달라져도
 // normalizeCategoryName()으로 이모지를 제거한 뒤 이름 텍스트만으로 매칭한다.
 function normalizeCategoryName(category) {
   return String(category || "")
@@ -1161,7 +1167,7 @@ function showTestDetailModal(i) {
   document.getElementById("test-detail-modal-title").textContent = p.label
   document.getElementById("test-detail-modal-body").innerHTML = `
     <div class="log-row 평가">
-      <div class="log-title-row"><div class="log-title">${esc([p.book, p.range].filter(Boolean).join(" · "))}</div><span class="log-pill ${scorePillTone(p.correct ?? 0, p.total ?? 0)}">정답 ${p.correct ?? 0} / ${p.total ?? 0}</span></div>
+      <div class="log-title-row"><div class="log-title">${esc([p.book, p.range].filter(Boolean).join(" · "))}</div><span class="log-pill ${scorePillTone(p.correct ?? 0, p.total ?? 0)}">${scorePillText(p.correct ?? 0, p.total ?? 0)}</span></div>
       ${p.unit ? `<div class="log-context">${esc(`  • 단원: ${p.unit}`)}</div>` : ""}
       ${(p.note || p.title) ? `<div class="log-note">${esc(p.note || p.title)}</div>` : ""}
       <div class="log-context">  • 점수: ${p.avg != null ? p.avg.toFixed(1) : "-"}점</div>
@@ -1717,7 +1723,7 @@ function buildDailyBodyHtml(r, date) {
       <h2>📄 평가</h2>
       ${todaysTests.length ? todaysTests.map((t) => `
         <div class="log-row 평가">
-          <div class="log-title-row"><div class="log-title">${esc([t.book, t.range].filter(Boolean).join(" · "))}</div><span class="log-pill ${scorePillTone(t.correct ?? 0, t.total ?? 0)}">정답 ${t.correct ?? 0} / ${t.total ?? 0}${(t.total && t.correct === t.total) ? " 💯" : ""}</span></div>
+          <div class="log-title-row"><div class="log-title">${esc([t.book, t.range].filter(Boolean).join(" · "))}</div><span class="log-pill ${scorePillTone(t.correct ?? 0, t.total ?? 0)}">${scorePillText(t.correct ?? 0, t.total ?? 0)}</span></div>
           ${t.unit ? `<div class="log-context">${esc(`  • 단원: ${t.unit}`)}</div>` : ""}
           ${(t.note || t.title) ? `<div class="log-note">${esc(t.note || t.title)}</div>` : ""}
         </div>
@@ -1786,7 +1792,7 @@ function renderDetail() {
         const items = []
         studyLogs.forEach((l) => items.push({ type: "학습", icon: "📖", date: l.date, title: [l.book, l.range].filter(Boolean).join(" · ") || "학습 기록", context: l.unit ? `  • 단원: ${l.unit}` : "", note: l.note, photo: l.photo, body: l.body, book: l.book }))
         homework.forEach((h) => items.push({ type: "과제", icon: "📝", date: h.date || h.due, title: [h.book, h.range].filter(Boolean).join(" · "), context: h.unit ? `  • 단원: ${h.unit}` : "", note: h.note || h.title || "", pill: h.status, pillTone: homeworkPillTone(h.status), book: h.book }))
-        tests.forEach((t) => items.push({ type: "평가", icon: "📄", date: t.date, title: [t.book, t.range].filter(Boolean).join(" · "), context: t.unit ? `  • 단원: ${t.unit}` : "", note: t.note || t.title || "", pill: `정답 ${t.correct ?? 0} / ${t.total ?? 0}${(t.total && t.correct === t.total) ? " 💯" : ""}`, pillTone: scorePillTone(t.correct ?? 0, t.total ?? 0), book: t.book }))
+        tests.forEach((t) => items.push({ type: "평가", icon: "📄", date: t.date, title: [t.book, t.range].filter(Boolean).join(" · "), context: t.unit ? `  • 단원: ${t.unit}` : "", note: t.note || t.title || "", pill: scorePillText(t.correct ?? 0, t.total ?? 0), pillTone: scorePillTone(t.correct ?? 0, t.total ?? 0), book: t.book }))
         const sorted = items.slice().sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
         const groups = []
         sorted.forEach((l) => {
