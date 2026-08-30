@@ -1618,7 +1618,11 @@ function buildReportTabHtml(r) {
     </div>
     <div class="card">
       <h2>💬 선생님 한마디</h2>
-      ${comments.length ? comments.map((c) => `<div class="list-item"><div>${esc(c.text)}</div><div class="meta">${esc(c.date)} · ${esc(c.by)}</div></div>`).join("") : `<div class="list-item empty-hint">아직 등록된 한마디가 없어요</div>`}
+      ${(() => {
+        // 주간/월간 보고서: 현재 선택된 기간(rangeStart~rangeEnd)에 속하는 출석 코멘트만 모아서 보여준다.
+        const periodComments = comments.filter((c) => c.date && c.date >= rangeStart && c.date <= rangeEnd)
+        return periodComments.length ? periodComments.map((c) => `<div class="list-item"><div>${esc(c.text)}</div><div class="meta">${esc(c.date)} · ${esc(c.by)}</div></div>`).join("") : `<div class="list-item empty-hint">아직 등록된 한마디가 없어요</div>`
+      })()}
     </div>
   `
 }
@@ -1643,8 +1647,8 @@ function findNextHomework(r, date) {
 }
 
 function findLatestComment(r, date) {
-  const comments = (r.teacher_comments || []).filter((c) => c.date && c.date <= date).sort((a, b) => (b.date || "").localeCompare(a.date || ""))
-  return comments[0] || (r.teacher_comments || [])[0] || null
+  // 일간 보고서: 그날짜 출석 레코드에 실제로 적힌 코멘트만 보여준다 (다른 날 코멘트로 대체하지 않음).
+  return (r.teacher_comments || []).find((c) => c.date === date) || null
 }
 
 function buildDailyBodyHtml(r, date) {
