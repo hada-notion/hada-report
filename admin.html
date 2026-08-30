@@ -76,7 +76,7 @@
   /* ---------- Stat cards ---------- */
   .stats {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(7, 1fr);
     gap: 10px;
     margin-bottom: 16px;
   }
@@ -165,9 +165,16 @@
   .course-tag.ended { background: #f2f2f2; color: #aaa; }
 
   /* ---------- Desktop table ---------- */
-  table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
-  th, td { padding: 10px 12px; text-align: left; font-size: 13px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
-  th { background: #fafafa; color: #888; font-weight: 600; font-size: 11px; }
+  /* table-layout: fixed + column widths keep the table size stable when rows expand/collapse or filters change. */
+  table { width: 100%; table-layout: fixed; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  th, td { padding: 10px 12px; text-align: left; font-size: 13px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; }
+  th { background: #fafafa; color: #888; font-weight: 600; font-size: 11px; white-space: nowrap; }
+  th:nth-child(1), td:nth-child(1) { width: 32%; }
+  th:nth-child(2), td:nth-child(2) { width: 11%; }
+  th:nth-child(3), td:nth-child(3) { width: 15%; }
+  th:nth-child(4), td:nth-child(4) { width: 13%; }
+  th:nth-child(5), td:nth-child(5) { width: 8%; }
+  th:nth-child(6), td:nth-child(6) { width: 21%; }
   tr:last-child td { border-bottom: none; }
   .student-header td { background: #f7f5ff; cursor: pointer; }
   .student-header .chev { display: inline-block; width: 14px; }
@@ -237,6 +244,9 @@
   }
   .toast.show { opacity: 1; }
 
+  @media (max-width: 900px) {
+    .stats { grid-template-columns: repeat(4, 1fr); }
+  }
   @media (max-width: 720px) {
     .stats { grid-template-columns: repeat(3, 1fr); }
   }
@@ -523,6 +533,11 @@ function reportUrl(token) {
 function reportStatus(s) {
   if (s.error || s.lastError) return "fail"
   if (!s.accessToken) return "none"
+  if (s.lastClassDate && s.updatedAt) {
+    const lastClassTime = new Date(s.lastClassDate).getTime()
+    const updatedTime = new Date(s.updatedAt).getTime()
+    if (lastClassTime > updatedTime) return "stale"
+  }
   if (s.updatedAt) {
     const days = (Date.now() - new Date(s.updatedAt).getTime()) / (24 * 60 * 60 * 1000)
     if (days > STALE_DAYS) return "stale"
@@ -670,9 +685,11 @@ function renderStats(students) {
   const groups = groupByStudent(students)
   const counts = { ok: 0, stale: 0, none: 0, fail: 0 }
   students.forEach((s) => { counts[reportStatus(s)]++ })
+  const todayStudentCount = groups.filter((g) => g.indices.some((i) => students[i].hasClassToday)).length
   document.getElementById("stats").innerHTML = `
     <div class="stat-card tot"><div class="num">${groups.length}</div><div class="label">전체 학생</div></div>
     <div class="stat-card tot"><div class="num">${students.length}</div><div class="label">전체 등록</div></div>
+    <div class="stat-card tot"><div class="num">${todayStudentCount}</div><div class="label">오늘 수업 학생</div></div>
     <div class="stat-card ok"><div class="num">${counts.ok}</div><div class="label">최신</div></div>
     <div class="stat-card stale"><div class="num">${counts.stale}</div><div class="label">갱신 필요</div></div>
     <div class="stat-card none"><div class="num">${counts.none}</div><div class="label">미생성</div></div>
