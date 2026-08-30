@@ -719,6 +719,8 @@ function mapRegistration(reg) {
     homework: (reg.homework || []).map((h) => ({ title: h.title || "", book: h.book || "", range: h.range || "", unit: h.unit || "", note: h.note || "", due: h.due_iso || null, status: h.status || "미제출" })),
     tests: (reg.tests || []).map((t) => ({ title: t.title || "", book: t.book || "", range: t.range || "", unit: t.unit || "", note: t.note || "", date: t.iso || null, correct: t.correct ?? 0, total: t.total ?? 0 })),
     teacher_comments: (reg.teacher_comments || []).map((c) => ({ text: c.text || "", date: c.iso || null, by: c.by || "" })),
+    // 주간/월간 보고서: ����고서(학원) DB 자체의 "선생님 한마디"를 보고서 구분·학습 기간과 함께 보관한다.
+    report_comments: (reg.report_comments || []).map((c) => ({ kind: c.kind || "", start: c.start || null, end: c.end || c.start || null, comment: c.comment || "" })),
   }
 }
 
@@ -1080,7 +1082,7 @@ function addDaysStr(dateStr, days) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
 }
 
-// 이모지는 카테고리 '이름'과 분리해서 관리한다. 노션 원본의 이모지 표기가 조금 달라져도
+// 이모지는 카테고리 '이름'과 분리해서 관리한���. ��션 원본의 이모지 표기가 조금 달라져도
 // normalizeCategoryName()으로 이모지를 제거한 뒤 이름 텍스트만으로 매칭한다.
 function normalizeCategoryName(category) {
   return String(category || "")
@@ -1565,7 +1567,7 @@ function buildTestTrendChartHtml(points) {
 function buildReportTabHtml(r) {
   const homework = r.homework || []
   const tests = r.tests || []
-  const comments = r.teacher_comments || []
+  const reportComments = r.report_comments || []
   const { rangeStart, rangeEnd } = reportRange()
   const attendanceRows = (r.attendance_rows || []).filter((a) => a.date >= rangeStart && a.date <= rangeEnd)
   const homeworkItems = homework.filter((h) => h.due && h.due >= rangeStart && h.due <= rangeEnd)
@@ -1630,9 +1632,12 @@ function buildReportTabHtml(r) {
     <div class="card">
       <h2>💬 선생님 한마디</h2>
       ${(() => {
-        // 주간/월간 보고서: 현재 선택된 기간(rangeStart~rangeEnd)에 속하는 출석 코멘트만 모아서 보여준다.
-        const periodComments = comments.filter((c) => c.date && c.date >= rangeStart && c.date <= rangeEnd)
-        return periodComments.length ? periodComments.map((c) => `<div class="list-item"><div>${esc(c.text)}</div><div class="meta">${esc(c.date)} · ${esc(c.by)}</div></div>`).join("") : `<div class="list-item empty-hint">아직 등록된 한마디가 없어요</div>`
+        // 주간/월간 보고서: 보고서(학원) DB에서 보고서 구분이 일치하고 학습 기간이 현재 선택된
+        // 기간(rangeStart~rangeEnd)과 겹치는 보고서 페이지 자체의 "선생님 한마디"를 보여준다.
+        // (출석 DB의 일자별 코멘트를 모아서 보여주던 이전 방식은 오동작이었다.)
+        const kind = reportPeriod === "week" ? "주간 보고서" : "월간 보고서"
+        const matched = reportComments.filter((c) => c.kind === kind && c.start && (c.end || c.start) >= rangeStart && c.start <= rangeEnd)
+        return matched.length ? matched.map((c) => `<div class="list-item"><div>${esc(c.comment)}</div></div>`).join("") : `<div class="list-item empty-hint">아직 등록된 한마디가 없어요</div>`
       })()}
     </div>
   `
@@ -1659,7 +1664,9 @@ function findNextHomework(r, date) {
 
 function findLatestComment(r, date) {
   // 일간 보고서: 그날짜 출석 레코드에 실제로 적힌 코멘트만 보여준다 (다른 날 코멘트로 대체하지 않음).
-  return (r.teacher_comments || []).find((c) => c.date === date) || null
+  // c.date는 백엔드가 보내는 원본 ISO 문자열(시간·타임존 포함일 수 있음)이라 date("YYYY-MM-DD")와
+  // 정확히 문자열이 같지 않을 수 있으므로, 날짜 부분(앞 10자)만 비교한다.
+  return (r.teacher_comments || []).find((c) => c.date && String(c.date).slice(0, 10) === date) || null
 }
 
 function buildDailyBodyHtml(r, date) {
