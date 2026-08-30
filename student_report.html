@@ -352,7 +352,7 @@ body {
 .log-context { font-size: 12px; color: #888; margin-bottom: 6px; }
 .log-pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; }
 .log-card.학습 .log-pill, .log-row.학습 .log-pill { background: #eaf2fc; color: #3f74b3; }
-.log-card.과제 .log-pill, .log-row.과제 .log-pill { background: #fdf1e3; color: #c17d2e; }
+.log-card.과��� .log-pill, .log-row.과제 .log-pill { background: #fdf1e3; color: #c17d2e; }
 .log-card.평가 .log-pill, .log-row.평가 .log-pill { background: #e9f7ef; color: #2f9e64; }
 .log-pill.tone-submit { background: #eaf1fd !important; color: #2f6fd9 !important; }
 .log-pill.tone-late { background: #fdeaea !important; color: #e04b4b !important; }
@@ -739,11 +739,11 @@ function mapReportToStudent(r) {
     grade: (r.school_grade || "").split(" ").slice(1).join(" ") || "",
     gender: "",
     birthdate: "",
-    siblings: [],
-    student_phone: "",
-    mother_phone: "",
-    father_phone: "",
-    primary_contact: "",
+    siblings: (r.siblings || []).map((sib) => ({ name: sib.name || "", token: sib.access_token || null })),
+    student_phone: r.student_phone || "",
+    mother_phone: r.mother_phone || "",
+    father_phone: r.father_phone || "",
+    primary_contact: r.primary_contact || "",
     grades: (r.grades || []).map((g) => ({
       subject: g.subject || "수학",
       exam_name: g.title || "",
@@ -978,7 +978,7 @@ function renderBookDetail() {
                       <div class="log-title">${esc([l.book, l.range].filter(Boolean).join(" · ") || "기록")}</div>
                       ${l.pill ? `<span class="log-pill ${l.pillTone || ""}">${esc(l.pill)}</span>` : ""}
                     </div>
-                    ${l.unit ? `<div class="log-context">${esc(`  • 단원: ${l.unit}`)}</div>` : ""}
+                    ${l.unit ? `<div class="log-context">${esc(`  �� 단원: ${l.unit}`)}</div>` : ""}
                     ${l.note ? `<div class="log-note">${esc(l.note)}</div>` : ""}
                   </div>
                 </div>
@@ -1044,7 +1044,7 @@ function basicInfoBodyHtml() {
     <div class="info-detail-row"><span class="label">학년</span><span>${esc(s.grade)}</span></div>
     <div class="info-detail-row"><span class="label">성별</span><span>${esc(s.gender)}</span></div>
     <div class="info-detail-row"><span class="label">생년월일</span><span>${esc(s.birthdate)}</span></div>
-    <div class="info-detail-row"><span class="label">형제자매</span><span>${s.siblings.length ? esc(s.siblings.join(", ")) : "-"}</span></div>
+    <div class="info-detail-row"><span class="label">형제자매</span><span>${s.siblings.length ? s.siblings.map((sib) => sib.token ? `<a href="?token=${encodeURIComponent(sib.token)}" class="sibling-link">${esc(sib.name)}</a>` : esc(sib.name)).join(", ") : "-"}</span></div>
     <div class="info-detail-row"><span class="label">학생 연락처</span><span>${esc(s.student_phone)}</span></div>
     <div class="info-detail-row"><span class="label">어머니 연락처</span><span>${esc(s.mother_phone)}</span></div>
     <div class="info-detail-row"><span class="label">아버지 연락처</span><span>${esc(s.father_phone)}</span></div>
