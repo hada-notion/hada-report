@@ -123,6 +123,24 @@
     font-size: 13px;
     background: #fff;
   }
+  .today-only-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #333;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+  }
+  .today-only-toggle input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+  }
 
   /* ---------- Status badges ---------- */
   .badge {
@@ -277,6 +295,10 @@
         <option value="old">오래된순</option>
         <option value="name">가나다순</option>
       </select>
+      <label class="today-only-toggle">
+        <input type="checkbox" id="filter-today" onchange="onFilterChange()">
+        오늘 수업만
+      </label>
     </div>
 
     <div id="app"><div class="loading">불러오는 중...</div></div>
@@ -464,6 +486,7 @@ function loadFilters() {
     document.getElementById("filter-course").value = saved.course || "all"
     document.getElementById("filter-report").value = saved.report || "all"
     document.getElementById("sort-select").value = saved.sort || "recent"
+    document.getElementById("filter-today").checked = !!saved.todayOnly
   } catch (e) { /* ignore */ }
 }
 
@@ -473,6 +496,7 @@ function currentFilters() {
     course: document.getElementById("filter-course").value,
     report: document.getElementById("filter-report").value,
     sort: document.getElementById("sort-select").value,
+    todayOnly: document.getElementById("filter-today").checked,
   }
 }
 
@@ -485,17 +509,18 @@ function onFilterChange() {
   renderAll()
 }
 
-function loadCollapsedSet() {
+// 기본값은 "모두 접힘"입니다. 사용자가 펼친 그룹만 이 목록에 기록됩니다.
+function loadExpandedSet() {
   try { return new Set(JSON.parse(sessionStorage.getItem(COLLAPSE_STORAGE) || "[]")) }
   catch (e) { return new Set() }
 }
-function saveCollapsedSet(set) {
+function saveExpandedSet(set) {
   sessionStorage.setItem(COLLAPSE_STORAGE, JSON.stringify([...set]))
 }
 function toggleGroupCollapse(key) {
-  const set = loadCollapsedSet()
+  const set = loadExpandedSet()
   if (set.has(key)) set.delete(key); else set.add(key)
-  saveCollapsedSet(set)
+  saveExpandedSet(set)
   renderAll()
 }
 
@@ -552,6 +577,7 @@ function studentMetaLine(s) {
 function matchesFilters(s, filters) {
   if (filters.course !== "all" && s.status !== filters.course) return false
   if (filters.report !== "all" && reportStatus(s) !== filters.report) return false
+  if (filters.todayOnly && !s.hasClassToday) return false
   if (filters.query) {
     const haystack = [s.studentName, s.title, s.school, s.grade, s.teacherName].filter(Boolean).join(" ").toLowerCase()
     if (!haystack.includes(filters.query)) return false
@@ -623,7 +649,7 @@ function renderList(filteredIndices, filters) {
     })
   }
 
-  const collapsed = loadCollapsedSet()
+  const expanded = loadExpandedSet()
 
   app.innerHTML = `
     <div class="desktop-view">
@@ -632,19 +658,19 @@ function renderList(filteredIndices, filters) {
           <tr><th>학생 / 등록</th><th>수강상태</th><th>보고서 상태</th><th>마지막 갱신</th><th>링크</th><th>작업</th></tr>
         </thead>
         <tbody>
-          ${groups.map((g, gi) => renderDesktopGroup(g, gi, collapsed)).join("")}
+          ${groups.map((g, gi) => renderDesktopGroup(g, gi, expanded)).join("")}
         </tbody>
       </table>
     </div>
     <div class="mobile-view">
-      ${groups.map((g, gi) => renderMobileGroup(g, gi, collapsed)).join("")}
+      ${groups.map((g, gi) => renderMobileGroup(g, gi, expanded)).join("")}
     </div>
   `
 }
 
-function renderDesktopGroup(g, gi, collapsed) {
+function renderDesktopGroup(g, gi, expanded) {
   const groupKey = `g-${g.studentName}`
-  const isCollapsed = collapsed.has(groupKey)
+  const isCollapsed = !expanded.has(groupKey)
   const activeCount = g.indices.filter((i) => STUDENTS[i].status === ACTIVE_STATUS).length
   const first = STUDENTS[g.indices[0]]
   const metaLine = studentMetaLine(first)
@@ -688,9 +714,9 @@ function renderDesktopRow(i, isCollapsed) {
   `
 }
 
-function renderMobileGroup(g, gi, collapsed) {
+function renderMobileGroup(g, gi, expanded) {
   const groupKey = `g-${g.studentName}`
-  const isCollapsed = collapsed.has(groupKey)
+  const isCollapsed = !expanded.has(groupKey)
   const first = STUDENTS[g.indices[0]]
   const metaLine = studentMetaLine(first)
   return `
