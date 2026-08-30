@@ -749,7 +749,7 @@ function renderDesktopGroup(g, gi, expanded) {
   const first = STUDENTS[g.indices[0]]
   const metaLine = studentMetaLine(first)
   return `
-    <tr class="student-header" onclick="toggleGroupCollapse(${JSON.stringify(groupKey)})">
+    <tr class="student-header" onclick='toggleGroupCollapse(${JSON.stringify(groupKey)})'>
       <td colspan="5">
         <span class="chev">${isCollapsed ? "▶" : "▼"}</span>
         <strong>${esc(g.studentName)}</strong>
@@ -795,7 +795,7 @@ function renderMobileGroup(g, gi, expanded) {
   const metaLine = studentMetaLine(first)
   return `
     <div class="m-student-card">
-      <div class="m-student-head" onclick="toggleGroupCollapse(${JSON.stringify(groupKey)})">
+      <div class="m-student-head" onclick='toggleGroupCollapse(${JSON.stringify(groupKey)})'>
         <div>
           <div class="name">${esc(g.studentName)}</div>
           <div class="meta">${metaLine ? esc(metaLine) + " · " : ""}등록 ${g.indices.length}건</div>
