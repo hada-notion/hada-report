@@ -801,7 +801,17 @@ let reportPeriod = "week" // "week" | "month" | "day"
 let reportOffset = 0 // 0 = current period, 1 = previous period, etc.
 let reportDayDate = null // used when reportPeriod === "day"
 let bookStatusTab = "진행중" // "진행중" | "완료" | "예정"
-const MOCK_TODAY = new Date().toISOString().slice(0, 10)
+// Computes today date in Asia/Seoul time (not UTC) so it is correct before 9am KST.
+function todayIsoInSeoul() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date())
+  return parts
+}
+const MOCK_TODAY = todayIsoInSeoul()
 
 function esc(s) {
   if (s === null || s === undefined) return ""
