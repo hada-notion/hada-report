@@ -345,6 +345,17 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="alimtalk-modal">
+  <div class="modal-box">
+    <h3>📩 알림톡을 발송할까요?</h3>
+    <p id="alimtalk-modal-body"></p>
+    <div class="modal-actions">
+      <button class="cancel" onclick="closeAlimtalkModal()">취소</button>
+      <button class="confirm" onclick="confirmAlimtalkSend()">발송</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -803,7 +814,7 @@ function renderDesktopRow(i, isCollapsed) {
       <td>
         <button class="action ${status === "fail" ? "retry" : ""}" id="btn-${i}" onclick='onActionClick(${i})'>${actionLabel(status)}</button>
         <button class="secondary" id="copy-${i}" onclick='copyLink(${JSON.stringify(s.accessToken || "")})' ${s.accessToken ? "" : "disabled"}>링크 복사</button>
-        <button class="secondary" id="alimtalk-${i}" onclick='sendAlimtalk(${i})' ${s.accessToken ? "" : "disabled"}>알림톡 전송</button>
+        <button class="secondary" id="alimtalk-${i}" onclick='sendAlimtalk(${i})' ${s.hasClassToday ? "" : "disabled"}>📩 알림톡 전송</button>
       </td>
     </tr>
   `
@@ -848,7 +859,7 @@ function renderMobileReg(i, isCollapsed) {
         <button class="action ${status === "fail" ? "retry" : ""}" id="mbtn-${i}" onclick='onActionClick(${i})'>${actionLabel(status)}</button>
         ${s.accessToken ? `<a class="link" style="align-self:center" href="${reportUrl(s.accessToken)}" target="_blank">보기</a>` : ""}
         <button class="secondary" onclick='copyLink(${JSON.stringify(s.accessToken || "")})' ${s.accessToken ? "" : "disabled"}>링크 복사</button>
-        <button class="secondary" onclick='sendAlimtalk(${i})' ${s.accessToken ? "" : "disabled"}>알림톡 전송</button>
+        <button class="secondary" id="malimtalk-${i}" onclick='sendAlimtalk(${i})' ${s.hasClassToday ? "" : "disabled"}>📩 알림톡 전송</button>
       </div>
     </div>
   `
@@ -963,14 +974,109 @@ function copyLink(token) {
   showToast("링크가 복사되었습니다.")
 }
 
-// [자리 확보용] 알림톡 전송 버튼. 실제 전송 기능은 다음 단계에서 연결합니다.
-function sendAlimtalk(i) {
-  showToast("알림톡 전송 기능은 준비 중입니다.")
+// ---------------- Actions: AlimTalk send ----------------
+let ALIMTALK_PENDING = null // { type: "single", index } | { type: "bulk", indices: number[] }
+
+function openAlimtalkModal(bodyHtml) {
+  document.getElementById("alimtalk-modal-body").innerHTML = bodyHtml
+  document.getElementById("alimtalk-modal").classList.add("active")
 }
 
-// [자리 확보용] 오늘 수업 학생 전원에게 알림톡 일괄 전송 버튼. 실제 전송 기능은 다음 단계에서 연결합니다.
+function closeAlimtalkModal() {
+  ALIMTALK_PENDING = null
+  document.getElementById("alimtalk-modal").classList.remove("active")
+}
+
+// 개별 학생 알림톡 전송: 오늘 수업(attendanceId)이 있는 학생만 보낼 수 있습니다.
+function sendAlimtalk(i) {
+  const s = STUDENTS[i]
+  if (!s.hasClassToday || !s.attendanceId) {
+    showToast("오늘 등록된 수업이 없어 알림톡을 보낼 수 없습니다.")
+    return
+  }
+  ALIMTALK_PENDING = { type: "single", index: i }
+  openAlimtalkModal(`<strong>${esc(s.studentName)}</strong> (${esc(s.title || "")}) 학생에게<br>오늘 수업 알림톡을 발송할까요?`)
+}
+
+// 오늘 수업이 있는(현재 필터에 맞는) 학생 전원에게 일괄 전송합니다.
 function sendAlimtalkBulk() {
-  showToast("알림톡 일괄 전송 기능은 준비 중입니다.")
+  const filters = currentFilters()
+  const targets = STUDENTS
+    .map((s, i) => i)
+    .filter((i) => matchesFilters(STUDENTS[i], filters))
+    .filter((i) => STUDENTS[i].hasClassToday && STUDENTS[i].attendanceId)
+  if (!targets.length) {
+    showToast("오늘 수업이 있는(필터에 맞는) 학생이 없습니다.")
+    return
+  }
+  ALIMTALK_PENDING = { type: "bulk", indices: targets }
+  openAlimtalkModal(`오늘 수업이 있는 <strong>${targets.length}명</strong>에게<br>알림톡을 일괄 발송할까요?`)
+}
+
+async function confirmAlimtalkSend() {
+  const pending = ALIMTALK_PENDING
+  document.getElementById("alimtalk-modal").classList.remove("active")
+  ALIMTALK_PENDING = null
+  if (!pending) return
+  if (pending.type === "single") {
+    await sendAlimtalkOne(pending.index)
+  } else {
+    await sendAlimtalkBulkRun(pending.indices)
+  }
+}
+
+async function callSendDailyReport(s) {
+  const adminKey = getAdminKey()
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/send-daily-report`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-admin-key": adminKey,
+      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+      "apikey": SUPABASE_ANON_KEY,
+    },
+    body: JSON.stringify({ registrationId: s.registrationId, attendanceId: s.attendanceId }),
+  })
+  if (!res.ok) throw new Error(`실패: ${res.status} ${await res.text()}`)
+  const result = await res.json()
+  s.accessToken = result.access_token
+  s.updatedAt = new Date().toISOString()
+  delete s.error
+  delete s.lastError
+  return result
+}
+
+async function sendAlimtalkOne(index) {
+  const s = STUDENTS[index]
+  const btn = document.getElementById(`alimtalk-${index}`)
+  const mbtn = document.getElementById(`malimtalk-${index}`)
+  ;[btn, mbtn].forEach((b) => { if (b) { b.disabled = true; b.textContent = "전송 중..." } })
+  try {
+    await callSendDailyReport(s)
+    showToast(`${s.studentName}에게 알림톡을 발송했습니다.`)
+    renderAll()
+  } catch (err) {
+    alert("알림톡 전송 오류: " + err.message)
+    ;[btn, mbtn].forEach((b) => { if (b) { b.disabled = false; b.textContent = "📩 알림톡 전송" } })
+  }
+}
+
+async function sendAlimtalkBulkRun(indices) {
+  let done = 0
+  let failed = 0
+  showToast(`알림톡 일괄 전송을 시작합니다. (0/${indices.length})`)
+  for (const i of indices) {
+    try {
+      await callSendDailyReport(STUDENTS[i])
+      done++
+    } catch (err) {
+      failed++
+      STUDENTS[i].error = err.message
+    }
+    showToast(`알림톡 전송 중... (${done + failed}/${indices.length})`)
+  }
+  renderAll()
+  showToast(`알림톡 일괄 전송 완료: 성공 ${done}건${failed ? `, 실패 ${failed}건` : ""}`)
 }
 
 // ---------------- Boot ----------------
