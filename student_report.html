@@ -719,7 +719,7 @@ function mapRegistration(reg) {
     homework: (reg.homework || []).map((h) => ({ title: h.title || "", book: h.book || "", range: h.range || "", unit: h.unit || "", note: h.note || "", due: h.due_iso || null, status: h.status || "미제출" })),
     tests: (reg.tests || []).map((t) => ({ title: t.title || "", book: t.book || "", range: t.range || "", unit: t.unit || "", note: t.note || "", date: t.iso || null, correct: t.correct ?? 0, total: t.total ?? 0 })),
     teacher_comments: (reg.teacher_comments || []).map((c) => ({ text: c.text || "", date: c.iso || null, by: c.by || "" })),
-    // 주간/월간 보고서: ����고서(학원) DB 자체의 "선생님 한마디"를 보고서 구분·학습 기간과 함께 보관한다.
+    // 주간/월간 보고서: �����고서(학원) DB 자체의 "선생님 한마디"를 보고서 구분·학습 기간과 함께 보관한다.
     report_comments: (reg.report_comments || []).map((c) => ({ kind: c.kind || "", start: c.start || null, end: c.end || c.start || null, comment: c.comment || "" })),
   }
 }
@@ -1082,7 +1082,7 @@ function addDaysStr(dateStr, days) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
 }
 
-// 이모지는 카테고리 '이름'과 분리해서 관리한���. ��션 원본의 이모지 표기가 조금 달라져도
+// 이모지는 카테고리 '이름'과 분리해서 관리������. ��션 원본의 이모지 표기가 조금 달라져도
 // normalizeCategoryName()으로 이모지를 제거한 뒤 이름 텍스트만으로 매칭한다.
 function normalizeCategoryName(category) {
   return String(category || "")
@@ -1728,7 +1728,7 @@ function buildDailyBodyHtml(r, date) {
 
     <div class="card">
       <h2>💬 선생님 코멘트</h2>
-      ${comment ? `<div class="list-item"><div>${esc(comment.text)}</div><div class="meta">${esc(comment.date)} · ${esc(comment.by)}</div></div>` : '<div class="empty">등록된 코멘트가 없습니다.</div>'}
+      ${comment ? `<div class="list-item"><div>${esc(comment.text)}</div></div>` : '<div class="empty">등록된 코멘트가 없습니다.</div>'}
     </div>
   `
 }
