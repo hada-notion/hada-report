@@ -246,6 +246,22 @@
   }
   .toast.show { opacity: 1; }
 
+  /* ---------- Settings dropdown menu ---------- */
+  .menu-wrap { position: relative; display: inline-block; }
+  .dropdown-menu {
+    display: none; position: absolute; top: 100%; left: 0; margin-top: 4px;
+    background: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    min-width: 130px; z-index: 40; overflow: hidden;
+  }
+  .dropdown-menu.open { display: block; }
+  .dropdown-menu button {
+    display: block; width: 100%; text-align: left; background: none; border: none;
+    padding: 9px 12px; font-size: 12px; color: #333; cursor: pointer; white-space: nowrap;
+  }
+  .dropdown-menu button:hover { background: #f5f3ff; }
+  .dropdown-menu button:disabled { color: #bbb; cursor: default; background: none; }
+  .dropdown-menu button.danger { color: #e04b4b; }
+
   @media (max-width: 900px) {
     .stats { grid-template-columns: repeat(4, 1fr); }
   }
@@ -282,8 +298,14 @@
       <div class="app-bar-actions">
         <button onclick="loadStudents()">🔄 새로고침</button>
         <button onclick="sendAlimtalkBulk()">📩 오늘 수업 알림톡 일괄 전송</button>
-        <button onclick="toggleReportLinkBulk(true)">🔒 필터 링크 일괄 비활성화</button>
-        <button onclick="toggleReportLinkBulk(false)">🔓 필터 링크 일괄 활성화</button>
+        <div class="menu-wrap">
+          <button onclick="toggleMenu(event, 'bulkmenu')">⚙️ 필터 링크 설정</button>
+          <div class="dropdown-menu" id="bulkmenu">
+            <button onclick="closeAllMenus(); toggleReportLinkBulk(false)">🔓 일괄 활성화</button>
+            <button onclick="closeAllMenus(); toggleReportLinkBulk(true)">🔒 일괄 비활성화</button>
+            <button class="danger" onclick="closeAllMenus(); regenerateLinkBulk()">♻️ 일괄 링크 변경</button>
+          </div>
+        </div>
         <button onclick="openPasswordModal()">🔑 비밀번호 변경</button>
         <button class="logout" onclick="logout()">로그아웃</button>
       </div>
@@ -321,21 +343,10 @@
   </div>
 </div>
 
-<div class="modal-overlay" id="confirm-modal">
-  <div class="modal-box">
-    <h3>⚠️ 보고서를 최신화할까요?</h3>
-    <p>최신화해도 <strong>기존 학부모 링크(주소)는 같이 유지됩니다.</strong><br>링크 안의 내용(학습 상황 데이터)만 갱신됩니다.<br>진행하시겠습니까?</p>
-    <div class="modal-actions">
-      <button class="cancel" onclick="closeConfirmModal()">취소</button>
-      <button class="confirm" onclick="confirmRefresh()">최신화</button>
-    </div>
-  </div>
-</div>
-
 <div class="modal-overlay" id="password-modal">
   <div class="modal-box">
     <h3>🔑 비밀번호 변경</h3>
-    <p>현재 비밀번호와 새 비밀번호(4자 이상)를 입력하세요.</p>
+    <p>현재 비밀번호와 새 비밀번호(4자 ���상)를 입력하세요.</p>
     <input type="password" id="pw-current" placeholder="현재 비밀번호" style="width:100%;padding:9px 10px;margin-bottom:8px;border:1px solid #ddd;border-radius:8px;font-size:13px;">
     <input type="password" id="pw-new" placeholder="새 비밀번호 (4자 이상)" style="width:100%;padding:9px 10px;margin-bottom:8px;border:1px solid #ddd;border-radius:8px;font-size:13px;">
     <input type="password" id="pw-new-confirm" placeholder="새 비밀번호 확인" style="width:100%;padding:9px 10px;margin-bottom:8px;border:1px solid #ddd;border-radius:8px;font-size:13px;">
@@ -594,7 +605,6 @@ function actionLabel(status) {
 
 // ---------------- Load & render ----------------
 let STUDENTS = [] // flat list from the server, kept for lookups by index
-let PENDING_REFRESH = null // { index, registrationId } awaiting confirm-modal decision
 
 const ACTIVE_STATUS = "수강 중"
 
@@ -831,7 +841,14 @@ function renderDesktopRow(i, isCollapsed) {
         <button class="action ${status === "fail" ? "retry" : ""}" id="btn-${i}" onclick='onActionClick(${i})'>${actionLabel(status)}</button>
         <button class="secondary" id="copy-${i}" onclick='copyLink(${JSON.stringify(s.accessToken || "")})' ${s.accessToken ? "" : "disabled"}>링크 복사</button>
         <button class="secondary" id="alimtalk-${i}" onclick='sendAlimtalk(${i})' ${s.hasClassToday ? "" : "disabled"}>📩 알림톡 전송</button>
-        <button class="secondary" id="linktoggle-${i}" onclick='toggleReportLink(${i})' ${s.accessToken ? "" : "disabled"}>${s.linkDisabled ? "🔓 링크 활성화" : "🔒 링크 비활성화"}</button>
+        <div class="menu-wrap">
+          <button class="secondary" id="gear-${i}" onclick='toggleMenu(event, "menu-${i}")' ${s.accessToken ? "" : "disabled"}>⚙️ 설정</button>
+          <div class="dropdown-menu" id="menu-${i}">
+            <button onclick='closeAllMenus(); setLinkStatus(${i}, false)'>🔓 활성화</button>
+            <button onclick='closeAllMenus(); setLinkStatus(${i}, true)'>🔒 비활성화</button>
+            <button class="danger" onclick='closeAllMenus(); regenerateLink(${i})'>♻️ 링크 변경</button>
+          </div>
+        </div>
       </td>
     </tr>
   `
@@ -877,7 +894,14 @@ function renderMobileReg(i, isCollapsed) {
         ${s.accessToken ? `<a class="link" style="align-self:center" href="${reportUrl(s.accessToken)}" target="_blank">보기</a>` : ""}
         <button class="secondary" onclick='copyLink(${JSON.stringify(s.accessToken || "")})' ${s.accessToken ? "" : "disabled"}>링크 복사</button>
         <button class="secondary" id="malimtalk-${i}" onclick='sendAlimtalk(${i})' ${s.hasClassToday ? "" : "disabled"}>📩 알림톡 전송</button>
-        <button class="secondary" id="mlinktoggle-${i}" onclick='toggleReportLink(${i})' ${s.accessToken ? "" : "disabled"}>${s.linkDisabled ? "🔓 링크 활성화" : "🔒 링크 비활성화"}</button>
+        <div class="menu-wrap">
+          <button class="secondary" id="mgear-${i}" onclick='toggleMenu(event, "mmenu-${i}")' ${s.accessToken ? "" : "disabled"}>⚙️ 설정</button>
+          <div class="dropdown-menu" id="mmenu-${i}">
+            <button onclick='closeAllMenus(); setLinkStatus(${i}, false)'>🔓 활성화</button>
+            <button onclick='closeAllMenus(); setLinkStatus(${i}, true)'>🔒 비활성화</button>
+            <button class="danger" onclick='closeAllMenus(); regenerateLink(${i})'>♻️ 링크 변경</button>
+          </div>
+        </div>
       </div>
     </div>
   `
@@ -890,27 +914,8 @@ function toggleError(i, mobile) {
 
 // ---------------- Actions: generate / refresh / retry ----------------
 function onActionClick(index) {
-  const s = STUDENTS[index]
-  const status = reportStatus(s)
-  if (status === "ok" || status === "stale") {
-    // Refreshing an existing report invalidates the old parent link — confirm first.
-    PENDING_REFRESH = index
-    document.getElementById("confirm-modal").classList.add("active")
-    return
-  }
+  // 최신화해도 기존 링크(주소)는 유지되므로 별도 확인창 없이 바로 진행합니다.
   generateReport(index)
-}
-
-function closeConfirmModal() {
-  PENDING_REFRESH = null
-  document.getElementById("confirm-modal").classList.remove("active")
-}
-
-function confirmRefresh() {
-  const index = PENDING_REFRESH
-  document.getElementById("confirm-modal").classList.remove("active")
-  PENDING_REFRESH = null
-  if (index !== null && index !== undefined) generateReport(index)
 }
 
 function setRowBusy(index, label) {
@@ -1080,8 +1085,9 @@ async function sendAlimtalkOne(index) {
 }
 
 // ---------------- Actions: report link enable/disable ----------------
-// 링크(access_token) 값 자신은 바뀌지 않습니다. 단지 노출 모드(link_disabled) 플래그만 변경합니다.
-async function callToggleReportLink(registrationIds, disabled) {
+// 링크 상태를 변경하거나(access_token 유지) 새 링크를 발급합니다(access_token 재발급).
+// action: "enable" | "disable" | "regenerate"
+async function callLinkAction(registrationIds, action) {
   const adminKey = getAdminKey()
   const res = await fetch(`${SUPABASE_URL}/functions/v1/toggle-report-link`, {
     method: "POST",
@@ -1091,31 +1097,26 @@ async function callToggleReportLink(registrationIds, disabled) {
       "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
       "apikey": SUPABASE_ANON_KEY,
     },
-    body: JSON.stringify({ registrationIds, disabled }),
+    body: JSON.stringify({ registrationIds, action }),
   })
   if (!res.ok) throw new Error(`실패: ${res.status} ${await res.text()}`)
   return res.json()
 }
 
-async function toggleReportLink(index) {
+async function setLinkStatus(index, disabled) {
   const s = STUDENTS[index]
   if (!s.accessToken) return
-  const nextDisabled = !s.linkDisabled
-  const btn = document.getElementById(`linktoggle-${index}`)
-  const mbtn = document.getElementById(`mlinktoggle-${index}`)
-  ;[btn, mbtn].forEach((b) => { if (b) b.disabled = true })
   try {
-    await callToggleReportLink([s.registrationId], nextDisabled)
-    s.linkDisabled = nextDisabled
-    showToast(nextDisabled ? `${s.studentName} 링크를 비활성화하였습니다.` : `${s.studentName} 링크를 활성화하였습니다.`)
+    await callLinkAction([s.registrationId], disabled ? "disable" : "enable")
+    s.linkDisabled = disabled
+    showToast(disabled ? `${s.studentName} 링크를 비활성화했습니다.` : `${s.studentName} 링크를 활성화했습니다.`)
     renderAll()
   } catch (err) {
     alert("링크 상태 변경 오류: " + err.message)
-    ;[btn, mbtn].forEach((b) => { if (b) b.disabled = false })
   }
 }
 
-// 현재 필터에 해당하는(링크가 있는) 학생 전원을 일괄 활성화/비활성화합니다.
+// 현재 필토에 해당하는(링크가 있는) 학생 전원을 일괄 활성화/비활성화합니다.
 async function toggleReportLinkBulk(disabled) {
   const filters = currentFilters()
   const targets = STUDENTS
@@ -1127,10 +1128,9 @@ async function toggleReportLinkBulk(disabled) {
     return
   }
   const verb = disabled ? "비활성화" : "활성화"
-  if (!confirm(`필터에 맞는 ${targets.length}개 링크를 일괄 ${verb}하시겠습니까?`)) return
   try {
     const registrationIds = targets.map((i) => STUDENTS[i].registrationId)
-    await callToggleReportLink(registrationIds, disabled)
+    await callLinkAction(registrationIds, disabled ? "disable" : "enable")
     targets.forEach((i) => { STUDENTS[i].linkDisabled = disabled })
     showToast(`${targets.length}개 링크를 ${verb}했습니다.`)
     renderAll()
@@ -1138,6 +1138,64 @@ async function toggleReportLinkBulk(disabled) {
     alert("일괄 링크 상태 변경 오류: " + err.message)
   }
 }
+
+// 링크(access_token)를 새로 발급합니다. 기존 링크는 더 이상 동작하지 않습니다.
+async function regenerateLink(index) {
+  const s = STUDENTS[index]
+  if (!s.accessToken) return
+  try {
+    const result = await callLinkAction([s.registrationId], "regenerate")
+    const newToken = result.tokens && result.tokens[s.registrationId]
+    if (newToken) s.accessToken = newToken
+    s.linkDisabled = false
+    showToast(`${s.studentName} 링크를 새로 발급했습니다. 기존 링크는 더 이상 동작하지 않습니다.`)
+    renderAll()
+  } catch (err) {
+    alert("링크 변경 오류: " + err.message)
+  }
+}
+
+// 현재 필토에 해당하는 학생 전원의 링크(access_token)를 일괄으로 새로 발급합니다.
+async function regenerateLinkBulk() {
+  const filters = currentFilters()
+  const targets = STUDENTS
+    .map((s, i) => i)
+    .filter((i) => matchesFilters(STUDENTS[i], filters))
+    .filter((i) => STUDENTS[i].accessToken)
+  if (!targets.length) {
+    showToast("링크를 바꿀 대상이 없습니다.")
+    return
+  }
+  try {
+    const registrationIds = targets.map((i) => STUDENTS[i].registrationId)
+    const result = await callLinkAction(registrationIds, "regenerate")
+    targets.forEach((i) => {
+      const newToken = result.tokens && result.tokens[STUDENTS[i].registrationId]
+      if (newToken) STUDENTS[i].accessToken = newToken
+      STUDENTS[i].linkDisabled = false
+    })
+    showToast(`${targets.length}개 링크를 새로 발급했습니다.`)
+    renderAll()
+  } catch (err) {
+    alert("일괄 링크 변경 오류: " + err.message)
+  }
+}
+
+// ---------------- Settings dropdown menu ----------------
+function toggleMenu(evt, id) {
+  evt.stopPropagation()
+  const target = document.getElementById(id)
+  if (!target) return
+  const isOpen = target.classList.contains("open")
+  closeAllMenus()
+  if (!isOpen) target.classList.add("open")
+}
+
+function closeAllMenus() {
+  document.querySelectorAll(".dropdown-menu.open").forEach((el) => el.classList.remove("open"))
+}
+
+document.addEventListener("click", closeAllMenus)
 
 async function sendAlimtalkBulkRun(indices) {
   let done = 0
