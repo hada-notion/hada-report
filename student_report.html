@@ -1216,13 +1216,8 @@ function buildGradeChartHtml(grades) {
   const plotWidth = width - paddingLeft - paddingRight
   const xStep = dates.length > 1 ? plotWidth / (dates.length - 1) : 0
   const scores = grades.map((g) => g.score)
-  const rawMax = scores.length ? Math.max(...scores) : 100
-  // 표시 영역(카드) 높이에 여유가 있을수록 눈금을 촘촘하게, 좁을수록 성기게 잡습니다.
-  const targetTicks = rawMax > 0 && rawMax <= 60 ? 6 : 4
-  const step = niceAxisStep(rawMax, targetTicks)
-  const axisMax = Math.max(step, Math.ceil(rawMax / step) * step)
-  const tickCount = Math.round(axisMax / step)
-  const ticks = Array.from({ length: tickCount + 1 }, (_, i) => i * step)
+  const axisMax = 100
+  const ticks = [0, 20, 40, 60, 80, 100]
   const yFor = (score) => height - paddingBottom - (score / axisMax) * (height - paddingTop - paddingBottom)
   const xFor = (date) => dates.length > 1 ? paddingLeft + dates.indexOf(date) * xStep : paddingLeft + plotWidth / 2
   const lines = subjects.map((subj) => {
@@ -1555,11 +1550,8 @@ function buildTestTrendChartHtml(points) {
   const width = 400, height = 200, paddingX = 30, paddingTop = 20, paddingBottom = 34
   const xStep = points.length > 1 ? (width - paddingX * 2) / (points.length - 1) : 0
   const validAvgs = points.filter((p) => p.avg !== null).map((p) => p.avg)
-  const rawMax = validAvgs.length ? Math.max(...validAvgs) : 100
-  const step = niceAxisStep(rawMax, 4)
-  const axisMax = Math.max(step, Math.ceil(rawMax / step) * step)
-  const tickCount = Math.round(axisMax / step)
-  const ticks = Array.from({ length: tickCount + 1 }, (_, i) => i * step)
+  const axisMax = 100
+  const ticks = [0, 20, 40, 60, 80, 100]
   const yFor = (v) => paddingTop + (height - paddingTop - paddingBottom) - (v / axisMax) * (height - paddingTop - paddingBottom)
   const xFor = (i) => paddingX + i * xStep
   const validPoints = points.map((p, i) => ({ ...p, i })).filter((p) => p.avg !== null)
