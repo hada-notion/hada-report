@@ -109,12 +109,31 @@
     top: 8px;
     z-index: 5;
   }
+  .search-input-wrap {
+    flex: 1 1 200px;
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
   .filter-bar input[type="text"] {
     flex: 1 1 200px;
-    padding: 8px 10px;
+    width: 100%;
+    padding: 8px 60px 8px 10px;
     border: 1px solid #ddd;
     border-radius: 8px;
     font-size: 13px;
+    box-sizing: border-box;
+  }
+  .search-count {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    color: #6c5ce7;
+    font-weight: 600;
+    white-space: nowrap;
+    pointer-events: none;
   }
   .filter-bar select {
     padding: 8px 10px;
@@ -314,7 +333,10 @@
     <div class="stats" id="stats"></div>
 
     <div class="filter-bar">
-      <input type="text" id="search-input" placeholder="🔍 학생·학교·클래스 검색" oninput="onFilterChange()">
+      <div class="search-input-wrap">
+        <input type="text" id="search-input" placeholder="🔍 학생·학교·클래스 검색" oninput="onFilterChange()">
+        <span id="search-count" class="search-count"></span>
+      </div>
       <select id="filter-course" onchange="onFilterChange()">
         <option value="all">수강상태 전체</option>
         <option value="수강 중">수강 중</option>
@@ -330,7 +352,7 @@
       </select>
       <select id="sort-select" onchange="onFilterChange()">
         <option value="recent">최근 갱신순</option>
-        <option value="old">오래된순</option>
+        <option value="old">오래��순</option>
         <option value="name">가나다순</option>
       </select>
       <label class="today-only-toggle">
@@ -719,6 +741,19 @@ function renderAll() {
   renderStats(STUDENTS)
   const filteredIndices = STUDENTS.map((s, i) => i).filter((i) => matchesFilters(STUDENTS[i], filters))
   renderList(filteredIndices, filters)
+  updateSearchCount(filteredIndices, filters)
+}
+
+function updateSearchCount(filteredIndices, filters) {
+  const el = document.getElementById("search-count")
+  if (!el) return
+  if (!filters.query) {
+    el.textContent = ""
+    return
+  }
+  const filteredStudents = filteredIndices.map((i) => STUDENTS[i])
+  const studentCount = groupByStudent(filteredStudents).length
+  el.textContent = `학생 ${studentCount}명 · 등록 ${filteredIndices.length}건`
 }
 
 function renderStats(students) {
@@ -1163,7 +1198,7 @@ async function regenerateLinkBulk() {
     .filter((i) => matchesFilters(STUDENTS[i], filters))
     .filter((i) => STUDENTS[i].accessToken)
   if (!targets.length) {
-    showToast("링크를 바꿀 대상이 없습니다.")
+    showToast("링크를 바꿀 대상이 ��습니다.")
     return
   }
   try {
