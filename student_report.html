@@ -722,7 +722,12 @@ function mapRegistration(reg) {
     schedule: (reg.schedule || []).map((s) => ({ day: s.day, start: s.start, end: s.end })),
     books: (reg.books || []).map((b) => ({ title: b.title || "", progress: b.progress ?? 0, status: normalizeBookStatus(b.status), cover: b.cover || "", pages: b.pages ?? null, units: b.units || [] })),
     attendance_summary: reg.attendance_summary || { present: 0, absent: 0, makeup: 0 },
-    attendance_rows: (reg.attendance_rows || []).map((a) => ({ date: a.iso || a.date_iso || (typeof a.date === "string" && /^\d{4}-\d{2}-\d{2}/.test(a.date) ? a.date.slice(0, 10) : null), weekday: a.weekday || "", status: a.status || "" })),
+    attendance_rows: (reg.attendance_rows || []).map((a) => {
+      const rawDate = a.iso || a.date_iso || (typeof a.date === "string" && /^\d{4}-\d{2}-\d{2}/.test(a.date) ? a.date : null)
+      // [FIX] 백엔드가 시간/타임존까지 포함된 ISO 문자열을 보낼 수 있어, 항상 앞 10자(YYYY-MM-DD)로 정규화한다.
+      // 정규화하지 않으면 캘린더(slice 비교)는 매칭되지만 일간 보고서(=== 비교)는 매칭되지 않는 문제가 생긴다.
+      return { date: rawDate ? String(rawDate).slice(0, 10) : null, weekday: a.weekday || "", status: a.status || "" }
+    }),
     study_logs: (reg.study_logs || []).map((s) => ({ book: s.book || "", range: s.range || "", unit: s.unit || "", date: s.iso || null, note: s.note || "", body: normalizeFeedBody(s.body) })),
     homework: (reg.homework || []).map((h) => ({ title: h.title || "", book: h.book || "", range: h.range || "", unit: h.unit || "", note: h.note || "", due: h.due_iso || null, status: h.status || "미제출" })),
     tests: (reg.tests || []).map((t) => ({ title: t.title || "", book: t.book || "", range: t.range || "", unit: t.unit || "", note: t.note || "", date: t.iso || null, correct: t.correct ?? 0, total: t.total ?? 0 })),
@@ -1115,7 +1120,7 @@ function normalizeCategoryName(category) {
     .replace(/[\p{Extended_Pictographic}\uFE0F\u200D]/gu, "")
     .trim()
 }
-const NOTICE_CATEGORY_COLORS = { "휴원": "#9b9a97", "학원 일정": "#337ea9", "학사 일정": "#e03e3e", "할일": "#448361" }
+const NOTICE_CATEGORY_COLORS = { "휴원": "#9b9a97", "��원 일정": "#337ea9", "학사 일정": "#e03e3e", "할일": "#448361" }
 const NOTICE_CATEGORY_EMOJI = { "휴원": "💤", "학원 일정": "📆", "학사 일정": "🏫", "할일": "✅" }
 // 할일(✅)은 강사/직원용 내부 항목이므로 학생에게는 절대 노출하지 않는다.
 function getStudentVisibleNotices() {
