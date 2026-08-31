@@ -98,9 +98,13 @@
   /* ---------- View toggle ---------- */
   .view-toggle {
     display: flex;
-    gap: 6px;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
     margin-bottom: 10px;
   }
+  .view-tabs { display: flex; gap: 6px; }
   .view-tab {
     padding: 8px 14px;
     border: 1px solid #ddd;
@@ -116,6 +120,15 @@
     color: #fff;
     font-weight: 600;
   }
+  .bulk-actions { display: flex; align-items: center; gap: 6px; }
+  .icon-btn {
+    background: #eee; color: #555; border: none; width: 34px; height: 34px;
+    border-radius: 8px; font-size: 15px; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .icon-btn.danger { color: #e04b4b; }
+  .icon-btn:disabled { opacity: 0.4; cursor: default; }
+  .selected-count { font-size: 12px; color: #6c5ce7; font-weight: 600; white-space: nowrap; }
 
   /* ---------- Filter bar ---------- */
   .filter-bar {
@@ -210,13 +223,18 @@
   table { width: 100%; table-layout: fixed; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
   th, td { padding: 10px 12px; text-align: left; font-size: 13px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; }
   th { background: #fafafa; color: #888; font-weight: 600; font-size: 11px; white-space: nowrap; }
-  th:nth-child(1), td:nth-child(1) { width: 28%; }
-  th:nth-child(2), td:nth-child(2) { width: 10%; }
-  th:nth-child(3), td:nth-child(3) { width: 14%; }
+  th:nth-child(1), td:nth-child(1) { width: 4%; text-align: center; }
+  th:nth-child(2), td:nth-child(2) { width: 25%; }
+  th:nth-child(3), td:nth-child(3) { width: 9%; }
   th:nth-child(4), td:nth-child(4) { width: 13%; }
-  th:nth-child(5), td:nth-child(5) { width: 35%; }
-  td:nth-child(5) { overflow: visible; white-space: nowrap; }
-  td:nth-child(5) .action, td:nth-child(5) .secondary { margin: 2px 4px 2px 0; }
+  th:nth-child(5), td:nth-child(5) { width: 13%; }
+  th:nth-child(6), td:nth-child(6) { width: 36%; }
+  td:nth-child(6) { overflow: visible; white-space: nowrap; }
+  td:nth-child(6) .action, td:nth-child(6) .secondary { margin: 2px 4px 2px 0; }
+  th.sortable { cursor: pointer; user-select: none; }
+  th.sortable:hover { color: #6c5ce7; }
+  th.sortable.active { color: #6c5ce7; }
+  input.row-check { width: 15px; height: 15px; cursor: pointer; }
   tr:last-child td { border-bottom: none; }
   .student-header td { background: #f7f5ff; cursor: pointer; }
   .student-header .chev { display: inline-block; width: 14px; }
@@ -339,15 +357,6 @@
       </div>
       <div class="app-bar-actions">
         <button onclick="loadStudents()">🔄 새로고침</button>
-        <button onclick="sendAlimtalkBulk()">📩 오늘 수업 알림톡 일괄 전송</button>
-        <div class="menu-wrap">
-          <button onclick="toggleMenu(event, 'bulkmenu')">⚙️ 필터 링크 설정</button>
-          <div class="dropdown-menu" id="bulkmenu">
-            <button onclick="closeAllMenus(); toggleReportLinkBulk(false)">🔓 일괄 활성화</button>
-            <button onclick="closeAllMenus(); toggleReportLinkBulk(true)">🔒 일괄 비활성화</button>
-            <button class="danger" onclick="closeAllMenus(); regenerateLinkBulk()">♻️ 일괄 링크 변경</button>
-          </div>
-        </div>
         <button onclick="openPasswordModal()">🔑 비밀번호 변경</button>
         <button class="logout" onclick="logout()">로그아웃</button>
       </div>
@@ -356,8 +365,17 @@
     <div class="stats" id="stats"></div>
 
     <div class="view-toggle" id="view-toggle">
-      <button id="view-tab-student" class="view-tab" onclick="setViewMode('student')" title="학생 보기 · 학생별로 묶어서 등록을 펼쳐보는 모드입니다">🧑‍🎓 학생 보기</button>
-      <button id="view-tab-registration" class="view-tab" onclick="setViewMode('registration')" title="등록 보기 · 학생 구분 없이 등록 단위로 나열합니다">📋 등록 보기</button>
+      <div class="view-tabs">
+        <button id="view-tab-student" class="view-tab" onclick="setViewMode('student')" title="학생 보기 · 학생별로 묶어서 등록을 펼쳐보는 모드입니다">🧑‍🎓 학생 보기</button>
+        <button id="view-tab-registration" class="view-tab" onclick="setViewMode('registration')" title="등록 보기 · 학생 구분 없이 등록 단위로 나열합니다">📋 등록 보기</button>
+      </div>
+      <div class="bulk-actions" id="bulk-actions">
+        <span class="selected-count" id="selected-count"></span>
+        <button class="icon-btn" id="bulk-sync-btn" onclick="bulkSyncSelected()" title="선택 동기화 · 체크한 등록을 한 번에 최신화합니다">🔄️</button>
+        <button class="icon-btn" id="bulk-alimtalk-btn" onclick="bulkAlimtalkSelected()" title="선택 알림톡 일괄 전송 · 체크한 학생 중 오늘 수업이 있는 학생에게 알림톡을 전송합니다">📩</button>
+        <button class="icon-btn" id="bulk-disable-btn" onclick="bulkDisableSelected()" title="선택 비활성화 · 체크한 링크를 비활성화합니다">🔒</button>
+        <button class="icon-btn danger" id="bulk-regen-btn" onclick="bulkRegenerateSelected()" title="선택 링크 변경 · 체크한 링크를 새로 발급합니다">♻️</button>
+      </div>
     </div>
 
     <div class="filter-bar">
@@ -377,11 +395,6 @@
         <option value="stale">갱신 필요</option>
         <option value="none">미생성</option>
         <option value="fail">실패</option>
-      </select>
-      <select id="sort-select" onchange="onFilterChange()">
-        <option value="recent">최근 갱신순</option>
-        <option value="old">오래��순</option>
-        <option value="name">가나다순</option>
       </select>
       <label class="today-only-toggle">
         <input type="checkbox" id="filter-today" onchange="onFilterChange()">
@@ -648,9 +661,27 @@ function courseTagHtml(status) {
 }
 
 function actionLabel(status) {
-  if (status === "none") return "보고서 생성"
+  if (status === "none") return "➕"
   if (status === "fail") return "다시 시도"
   return "🔄️" // ok, stale
+}
+
+function actionTitle(status) {
+  if (status === "none") return "보고서 생성 · 최초로 리포트를 생성합니다"
+  if (status === "fail") return "다시 시도 · 리포트 생성을 다시 시도합니다"
+  return "동기화 · 최신 수업 정보로 리포트를 갱신합니다"
+}
+
+function courseRank(status) {
+  if (status === "수강 중") return 0
+  if (status === "수강 예정") return 1
+  if (status === "수강 종료") return 2
+  return 3
+}
+
+function reportRank(status) {
+  const order = { ok: 0, stale: 1, none: 2, fail: 3 }
+  return order[status] !== undefined ? order[status] : 4
 }
 
 // ---------------- Load & render ----------------
@@ -690,7 +721,6 @@ function loadFilters() {
     document.getElementById("search-input").value = saved.query || ""
     document.getElementById("filter-course").value = saved.course || "all"
     document.getElementById("filter-report").value = saved.report || "all"
-    document.getElementById("sort-select").value = saved.sort || "recent"
     document.getElementById("filter-today").checked = !!saved.todayOnly
   } catch (e) { /* ignore */ }
 }
@@ -700,7 +730,6 @@ function currentFilters() {
     query: document.getElementById("search-input").value.trim().toLowerCase(),
     course: document.getElementById("filter-course").value,
     report: document.getElementById("filter-report").value,
-    sort: document.getElementById("sort-select").value,
     todayOnly: document.getElementById("filter-today").checked,
   }
 }
@@ -737,6 +766,7 @@ async function loadStudents() {
     showLoginScreen()
     return
   }
+  SELECTED = new Set()
 
   try {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/list-students`, {
@@ -796,6 +826,7 @@ function renderAll() {
   const filteredIndices = STUDENTS.map((s, i) => i).filter((i) => matchesFilters(STUDENTS[i], filters))
   renderList(filteredIndices, filters)
   updateSearchCount(filteredIndices, filters)
+  updateSelectionUI()
 }
 
 function updateSearchCount(filteredIndices, filters) {
@@ -826,18 +857,164 @@ function renderStats(students) {
   `
 }
 
+function compareByColumn(a, b, students, col) {
+  const sa = students[a], sb = students[b]
+  if (col === "name") return (sa.studentName || "").localeCompare(sb.studentName || "", "ko")
+  if (col === "course") return courseRank(sa.status) - courseRank(sb.status)
+  if (col === "report") return reportRank(reportStatus(sa)) - reportRank(reportStatus(sb))
+  const ta = sa.updatedAt ? new Date(sa.updatedAt).getTime() : 0
+  const tb = sb.updatedAt ? new Date(sb.updatedAt).getTime() : 0
+  return ta - tb
+}
+
 function sortIndices(indices, students, sort) {
   const arr = [...indices]
-  if (sort === "name") {
-    arr.sort((a, b) => (students[a].studentName || "").localeCompare(students[b].studentName || "", "ko"))
-  } else {
-    arr.sort((a, b) => {
-      const ta = students[a].updatedAt ? new Date(students[a].updatedAt).getTime() : 0
-      const tb = students[b].updatedAt ? new Date(students[b].updatedAt).getTime() : 0
-      return sort === "old" ? ta - tb : tb - ta
-    })
-  }
+  arr.sort((a, b) => {
+    const cmp = compareByColumn(a, b, students, sort.col)
+    return sort.dir === "desc" ? -cmp : cmp
+  })
   return arr
+}
+
+function groupSortValue(g, col) {
+  if (col === "name") return g.studentName
+  if (col === "course") return Math.min(...g.indices.map((i) => courseRank(STUDENTS[i].status)))
+  if (col === "report") return Math.min(...g.indices.map((i) => reportRank(reportStatus(STUDENTS[i]))))
+  return Math.max(...g.indices.map((i) => (STUDENTS[i].updatedAt ? new Date(STUDENTS[i].updatedAt).getTime() : 0)))
+}
+
+// ---------------- Header sort state (표 헤드 클릭 정렬) ----------------
+const SORT_STORAGE = "admin_sort_state"
+
+function getSortState() {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(SORT_STORAGE) || "null")
+    if (saved && saved.col) return saved
+  } catch (e) { /* ignore */ }
+  return { col: "updated", dir: "desc" }
+}
+
+function saveSortState(sort) {
+  sessionStorage.setItem(SORT_STORAGE, JSON.stringify(sort))
+}
+
+function onHeaderSortClick(col) {
+  const sort = getSortState()
+  const dir = sort.col === col ? (sort.dir === "asc" ? "desc" : "asc") : (col === "updated" ? "desc" : "asc")
+  saveSortState({ col, dir })
+  renderAll()
+}
+
+function sortableTh(label, col, sort) {
+  const active = sort.col === col
+  const arrow = active ? (sort.dir === "asc" ? " ▲" : " ▼") : ""
+  return `<th class="sortable${active ? " active" : ""}" onclick="onHeaderSortClick(${JSON.stringify(col)})">${label}${arrow}</th>`
+}
+
+function renderTableHead(sort, allIndices) {
+  const allChecked = allIndices.length > 0 && allIndices.every((i) => isSelected(i))
+  return `
+    <tr>
+      <th><input type="checkbox" class="row-check" ${allChecked ? "checked" : ""} onchange='onSelectAllChange(this.checked, ${JSON.stringify(allIndices)})'></th>
+      ${sortableTh("학생 / 등록", "name", sort)}
+      ${sortableTh("수강상태", "course", sort)}
+      ${sortableTh("보고서 상태", "report", sort)}
+      ${sortableTh("마지막 갱신", "updated", sort)}
+      <th>작업</th>
+    </tr>
+  `
+}
+
+// ---------------- Selection (체크박스) ----------------
+let SELECTED = new Set()
+
+function isSelected(i) { return SELECTED.has(i) }
+
+function selectedIndices() {
+  return [...SELECTED].filter((i) => STUDENTS[i])
+}
+
+function onRowCheckboxChange(i, checked) {
+  if (checked) SELECTED.add(i); else SELECTED.delete(i)
+  updateSelectionUI()
+}
+
+function onSelectAllChange(checked, indices) {
+  indices.forEach((i) => { if (checked) SELECTED.add(i); else SELECTED.delete(i) })
+  renderAll()
+}
+
+function onGroupCheckboxChange(indices, checked) {
+  indices.forEach((i) => { if (checked) SELECTED.add(i); else SELECTED.delete(i) })
+  renderAll()
+}
+
+function updateSelectionUI() {
+  const count = SELECTED.size
+  const label = document.getElementById("selected-count")
+  if (label) label.textContent = count ? `${count}건 선택됨` : ""
+  ;["bulk-sync-btn", "bulk-alimtalk-btn", "bulk-disable-btn", "bulk-regen-btn"].forEach((id) => {
+    const btn = document.getElementById(id)
+    if (btn) btn.disabled = count === 0
+  })
+}
+
+// 선택한 등록을 한 번에 동기화합니다.
+async function bulkSyncSelected() {
+  const targets = selectedIndices()
+  if (!targets.length) { showToast("선택된 항목이 없습니다."); return }
+  const btn = document.getElementById("bulk-sync-btn")
+  if (btn) btn.disabled = true
+  for (const i of targets) {
+    await generateReport(i, true)
+  }
+  if (btn) btn.disabled = SELECTED.size === 0
+  showToast(`선택한 ${targets.length}건을 동기화했습니다.`)
+}
+
+// 선택한 학생 중 오늘 수업이 있는 학생에게만 알림톡을 일괄 전송합니다.
+function bulkAlimtalkSelected() {
+  const targets = selectedIndices().filter((i) => STUDENTS[i].hasClassToday && STUDENTS[i].attendanceId)
+  if (!targets.length) {
+    showToast("선택한 항목 중 오늘 수업이 있는 학생이 없습니다.")
+    return
+  }
+  ALIMTALK_PENDING = { type: "bulk", indices: targets }
+  openAlimtalkModal(`선택한 <strong>${targets.length}명</strong>에게<br>오늘 수업 알림톡을 발송할까요?`)
+}
+
+// 선택한 링크를 일괄 비활성화합니다.
+async function bulkDisableSelected() {
+  const targets = selectedIndices().filter((i) => STUDENTS[i].accessToken)
+  if (!targets.length) { showToast("선택된 항목 중 링크가 있는 학생이 없습니다."); return }
+  try {
+    const registrationIds = targets.map((i) => STUDENTS[i].registrationId)
+    await callLinkAction(registrationIds, "disable")
+    targets.forEach((i) => { STUDENTS[i].linkDisabled = true })
+    showToast(`선택한 ${targets.length}개 링크를 비활성화했습니다.`)
+    renderAll()
+  } catch (err) {
+    alert("선택 비활성화 오류: " + err.message)
+  }
+}
+
+// 선택한 링크(access_token)를 일괄으로 새로 발급합니다.
+async function bulkRegenerateSelected() {
+  const targets = selectedIndices().filter((i) => STUDENTS[i].accessToken)
+  if (!targets.length) { showToast("선택된 항목 중 링크가 있는 학생이 없습니다."); return }
+  try {
+    const registrationIds = targets.map((i) => STUDENTS[i].registrationId)
+    const result = await callLinkAction(registrationIds, "regenerate")
+    targets.forEach((i) => {
+      const newToken = result.tokens && result.tokens[STUDENTS[i].registrationId]
+      if (newToken) STUDENTS[i].accessToken = newToken
+      STUDENTS[i].linkDisabled = false
+    })
+    showToast(`선택한 ${targets.length}개 링크를 새로 발급했습니다.`)
+    renderAll()
+  } catch (err) {
+    alert("선택 링크 변경 오류: " + err.message)
+  }
 }
 
 function renderList(filteredIndices, filters) {
@@ -851,36 +1028,32 @@ function renderList(filteredIndices, filters) {
     return
   }
 
+  const sort = getSortState()
+
   // Build groups restricted to filtered indices, preserving student grouping.
   const allGroups = groupByStudent(STUDENTS)
   const filteredSet = new Set(filteredIndices)
   const groups = allGroups
     .map((g) => ({ ...g, indices: g.indices.filter((i) => filteredSet.has(i)) }))
     .filter((g) => g.indices.length)
-    .map((g) => ({ ...g, indices: sortIndices(g.indices, STUDENTS, filters.sort) }))
+    .map((g) => ({ ...g, indices: sortIndices(g.indices, STUDENTS, sort) }))
 
-  if (filters.sort === "name") {
-    groups.sort((a, b) => a.studentName.localeCompare(b.studentName, "ko"))
-  } else {
-    groups.sort((a, b) => {
-      const ta = Math.max(...a.indices.map((i) => STUDENTS[i].updatedAt ? new Date(STUDENTS[i].updatedAt).getTime() : 0))
-      const tb = Math.max(...b.indices.map((i) => STUDENTS[i].updatedAt ? new Date(STUDENTS[i].updatedAt).getTime() : 0))
-      return filters.sort === "old" ? ta - tb : tb - ta
-    })
-  }
+  groups.sort((a, b) => {
+    const va = groupSortValue(a, sort.col)
+    const vb = groupSortValue(b, sort.col)
+    const cmp = typeof va === "string" ? va.localeCompare(vb, "ko") : va - vb
+    return sort.dir === "desc" ? -cmp : cmp
+  })
 
   const expanded = loadExpandedSet()
 
   if (VIEW_MODE === "registration") {
-    const flatIndices = sortIndices(filteredIndices, STUDENTS, filters.sort)
-    if (filters.sort === "name") {
-      flatIndices.sort((a, b) => (STUDENTS[a].studentName || "").localeCompare(STUDENTS[b].studentName || "", "ko"))
-    }
+    const flatIndices = sortIndices(filteredIndices, STUDENTS, sort)
     app.innerHTML = `
       <div class="desktop-view">
         <table>
           <thead>
-            <tr><th>학생 / 등록</th><th>수강상태</th><th>보고서 상태</th><th>마지막 갱신</th><th>작업</th></tr>
+            ${renderTableHead(sort, filteredIndices)}
           </thead>
           <tbody>
             ${flatIndices.map((i) => renderDesktopRow(i, false, true)).join("")}
@@ -898,7 +1071,7 @@ function renderList(filteredIndices, filters) {
     <div class="desktop-view">
       <table>
         <thead>
-          <tr><th>학생 / 등록</th><th>수강상태</th><th>보고서 상태</th><th>마지막 갱신</th><th>작업</th></tr>
+          ${renderTableHead(sort, filteredIndices)}
         </thead>
         <tbody>
           ${groups.map((g, gi) => renderDesktopGroup(g, gi, expanded)).join("")}
@@ -937,8 +1110,10 @@ function renderDesktopGroup(g, gi, expanded) {
   const metaLine = studentMetaLine(first)
   const firstWithToken = g.indices.find((i) => STUDENTS[i].accessToken)
   const nameToken = firstWithToken !== undefined ? STUDENTS[firstWithToken].accessToken : null
+  const allChecked = g.indices.length > 0 && g.indices.every((i) => isSelected(i))
   return `
     <tr class="student-header" onclick='toggleGroupCollapse(${JSON.stringify(groupKey)})'>
+      <td onclick="event.stopPropagation()"><input type="checkbox" class="row-check" ${allChecked ? "checked" : ""} onchange='onGroupCheckboxChange(${JSON.stringify(g.indices)}, this.checked)'></td>
       <td colspan="4">
         <span class="chev">${isCollapsed ? "▶" : "▼"}</span>
         <strong>${esc(g.studentName)}</strong>
@@ -961,6 +1136,7 @@ function renderDesktopRow(i, isCollapsed, flat) {
     : `${esc(s.title || s.registrationId)}${s.teacherName ? `<div class="sub-meta">담당: ${esc(s.teacherName)}</div>` : ""}`
   return `
     <tr id="row-${i}" class="reg-row${isCollapsed ? " collapsed" : ""}">
+      <td onclick="event.stopPropagation()"><input type="checkbox" class="row-check" ${isSelected(i) ? "checked" : ""} onchange='onRowCheckboxChange(${i}, this.checked)'></td>
       <td style="padding-left:${flat ? "12" : "28"}px">
         ${titleCell}
       </td>
@@ -971,7 +1147,7 @@ function renderDesktopRow(i, isCollapsed, flat) {
       </td>
       <td class="status" id="updated-${i}">${formatDate(s.updatedAt)}${s.updatedAt ? `<div class="sub-meta">${relativeFromNow(s.updatedAt)}</div>` : ""}</td>
       <td>
-        <button class="action ${status === "fail" ? "retry" : ""}" id="btn-${i}" onclick='onActionClick(${i})' title="동기화 · 최신 수업 정보로 리포트를 갱신합니다">${actionLabel(status)}</button>
+        <button class="action ${status === "fail" ? "retry" : ""}" id="btn-${i}" onclick='onActionClick(${i})' title="${esc(actionTitle(status))}">${actionLabel(status)}</button>
         <button class="secondary" id="copy-${i}" onclick='openLink(${JSON.stringify(s.accessToken || "")})' ${s.accessToken ? "" : "disabled"} title="링크 열기 · 학부모용 리포트 페이지를 새 탭에서 열고 링크도 함께 복사합니다">🔗</button>
         <button class="secondary" id="alimtalk-${i}" onclick='sendAlimtalk(${i})' ${s.hasClassToday ? "" : "disabled"} title="알림톡 전송 · 오늘 수업한 학생에게 카카오 알림톡을 전송합니다">📩</button>
         ${lockToggleButtonHtml(i, "lock")}
@@ -988,12 +1164,16 @@ function renderMobileGroup(g, gi, expanded) {
   const metaLine = studentMetaLine(first)
   const firstWithToken = g.indices.find((i) => STUDENTS[i].accessToken)
   const nameToken = firstWithToken !== undefined ? STUDENTS[firstWithToken].accessToken : null
+  const allChecked = g.indices.length > 0 && g.indices.every((i) => isSelected(i))
   return `
     <div class="m-student-card">
       <div class="m-student-head" onclick='toggleGroupCollapse(${JSON.stringify(groupKey)})'>
-        <div>
-          <div class="name">${esc(g.studentName)}</div>
-          <div class="meta">${metaLine ? esc(metaLine) + " · " : ""}등록 ${g.indices.length}건</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="checkbox" class="row-check" onclick="event.stopPropagation()" ${allChecked ? "checked" : ""} onchange='onGroupCheckboxChange(${JSON.stringify(g.indices)}, this.checked)'>
+          <div>
+            <div class="name">${esc(g.studentName)}</div>
+            <div class="meta">${metaLine ? esc(metaLine) + " · " : ""}등록 ${g.indices.length}건</div>
+          </div>
         </div>
         <span class="chev">${isCollapsed ? "▶" : "▼"}</span>
       </div>
@@ -1009,7 +1189,10 @@ function renderMobileReg(i, isCollapsed, flat) {
   return `
     <div class="m-reg${isCollapsed ? " collapsed" : ""}" id="mrow-${i}">
       <div class="m-reg-top">
-        <div class="m-reg-title">${flat ? esc(s.studentName) : esc(s.title || s.registrationId)}</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="checkbox" class="row-check" ${isSelected(i) ? "checked" : ""} onchange='onRowCheckboxChange(${i}, this.checked)'>
+          <div class="m-reg-title">${flat ? esc(s.studentName) : esc(s.title || s.registrationId)}</div>
+        </div>
         ${statusBadgeHtml(status)}
       </div>
       ${flat ? `<div class="m-reg-sub">${esc(s.title || s.registrationId)}</div>` : ""}
@@ -1020,7 +1203,7 @@ function renderMobileReg(i, isCollapsed, flat) {
       </div>
       ${errMsg ? `<button class="error-toggle" onclick='toggleError(${i}, true)'>오류 상세</button><div class="error-detail" id="errdetail-m-${i}">${esc(errMsg)}</div>` : ""}
       <div class="m-actions">
-        <button class="action ${status === "fail" ? "retry" : ""}" id="mbtn-${i}" onclick='onActionClick(${i})' title="동기화 · 최신 수업 정보로 리포트를 갱신합니다">${actionLabel(status)}</button>
+        <button class="action ${status === "fail" ? "retry" : ""}" id="mbtn-${i}" onclick='onActionClick(${i})' title="${esc(actionTitle(status))}">${actionLabel(status)}</button>
         <button class="secondary" onclick='openLink(${JSON.stringify(s.accessToken || "")})' ${s.accessToken ? "" : "disabled"} title="링크 열기 · 학부모용 리포트 페이지를 새 탭에서 열고 링크도 함께 복사합니다">🔗</button>
         <button class="secondary" id="malimtalk-${i}" onclick='sendAlimtalk(${i})' ${s.hasClassToday ? "" : "disabled"} title="알림톡 전송 · 오늘 수업한 학생에게 카카오 알림톡을 전송합니다">📩</button>
         ${lockToggleButtonHtml(i, "mlock")}
