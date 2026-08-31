@@ -66,6 +66,7 @@
   }
   .app-bar h1 { font-size: 20px; margin: 0 0 2px; }
   .app-bar .last-fetch { font-size: 12px; color: #999; }
+  .app-bar .debug-clock { font-size: 12px; color: #999; }
   .app-bar-actions { display: flex; gap: 8px; }
   .app-bar-actions button {
     background: #333; color: #fff; border: none; padding: 8px 14px;
@@ -354,6 +355,7 @@
       <div>
         <h1>📋 학생 리포트 관리</h1>
         <div class="last-fetch" id="last-fetch">-</div>
+        <div class="debug-clock" id="debug-clock">-</div>
       </div>
       <div class="app-bar-actions">
         <button onclick="loadStudents()">🔄 새로고침</button>
@@ -1505,10 +1507,27 @@ async function sendAlimtalkBulkRun(indices) {
   showToast(`알림톡 일괄 전송 완료: 성공 ${done}건${failed ? `, 실패 ${failed}건` : ""}`)
 }
 
+// ---------------- Debug clock ----------------
+// 진단용: 이 프론트엔드(밌단)가 현재 묵 시각을 어뚒게 인식하는지 화인하기 위해 추가합니다.
+function updateDebugClock() {
+  const el = document.getElementById("debug-clock")
+  if (!el) return
+  const now = new Date()
+  const parts = new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+    weekday: "short", hour12: false,
+  }).format(now)
+  el.textContent = `현재 인식 시각(Asia/Seoul): ${parts}`
+}
+
 // ---------------- Boot ----------------
 ;(function boot() {
   loadFilters()
   updateViewToggleUI()
+  updateDebugClock()
+  setInterval(updateDebugClock, 1000)
   if (getAdminKey()) {
     showAppScreen()
   } else {

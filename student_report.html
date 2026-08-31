@@ -533,9 +533,16 @@ body:not(.reg-expanded) .cal-hint { animation: calExtraFadeIn 0.26s ease both; }
   .attendance-calendar .cal-month-label { font-size: 9px; margin: 0 0 2px; }
   .cal-month { margin-bottom: 2px !important; }
 }
+  #debug-clock {
+    position: fixed; top: 4px; left: 50%; transform: translateX(-50%);
+    z-index: 9999; background: rgba(0,0,0,0.55); color: #fff;
+    font-size: 10px; padding: 3px 8px; border-radius: 6px;
+    pointer-events: none; white-space: nowrap;
+  }
 </style>
 </head>
 <body>
+<div id="debug-clock">-</div>
 <div id="app"></div>
 
 <div class="menu-overlay" id="menu">
@@ -728,7 +735,7 @@ function mapRegistration(reg) {
     attendance_rows: (reg.attendance_rows || []).map((a) => {
       const rawDate = a.iso || a.date_iso || (typeof a.date === "string" && /^\d{4}-\d{2}-\d{2}/.test(a.date) ? a.date : null)
       // [FIX] 백엔드가 시간/타임존까지 포함된 ISO 문자열을 보낼 수 있어, 항상 앞 10자(YYYY-MM-DD)로 정규화한다.
-      // 정규화하지 않으면 캘린더(slice 비교)는 매칭되지만 일간 보고서(=== 비교)는 매칭되지 않는 문제가 생긴다.
+      // 정규화하지 않으면 캘린더(slice 비교)는 매칭되지만 일일 보고서(=== 비교)는 매칭되지 않는 문제가 생긴다.
       return { date: rawDate ? String(rawDate).slice(0, 10) : null, weekday: a.weekday || "", status: a.status || "" }
     }),
     study_logs: (reg.study_logs || []).map((s) => ({ book: s.book || "", range: s.range || "", unit: s.unit || "", date: s.iso || null, note: s.note || "", body: normalizeFeedBody(s.body) })),
@@ -1918,6 +1925,22 @@ function renderApp() {
     app.innerHTML = renderIntro()
   }
 }
+
+// 진단용: 이 화이지(프론트엔드)가 현재 시각을 어뚒게 인식하는지 확인하기 위해 추가합니다.
+function updateDebugClock() {
+  const el = document.getElementById("debug-clock")
+  if (!el) return
+  const now = new Date()
+  const parts = new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+    weekday: "short", hour12: false,
+  }).format(now)
+  el.textContent = `현재 인식 시각(Asia/Seoul): ${parts}`
+}
+updateDebugClock()
+setInterval(updateDebugClock, 1000)
 
 async function initApp() {
   app.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;min-height:80vh;color:#8a8a8a;font-size:15px;">불러오는 중...</div>'
