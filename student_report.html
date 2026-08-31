@@ -306,6 +306,8 @@ body {
 .badge.완료 { background: #e6f7ee; color: #1e9e5c; }
 .badge.미완료 { background: #fdeaea; color: #e04b4b; }
 .badge.부분완료 { background: #fff6e0; color: #d68f00; }
+.badge.제출 { background: #e6f7ee; color: #1e9e5c; }
+.badge.미제출 { background: #fdeaea; color: #e04b4b; }
 
 .book-cards { display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 6px; margin: 0 -2px; -webkit-overflow-scrolling: touch; }
 .book-card { position: relative; flex: 0 0 clamp(150px, 44vw, 220px); aspect-ratio: 3 / 4; border-radius: 12px; overflow: hidden; background: linear-gradient(135deg, #ece9fb, #f5f3ff); box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
@@ -476,6 +478,7 @@ body:not(.reg-expanded) .cal-hint { animation: calExtraFadeIn 0.26s ease both; }
 .cal-summary-item.present .num { color: #1e9e5c; }
 .cal-summary-item.absent .num { color: #e04b4b; }
 .cal-summary-item.makeup .num { color: #2f6fd9; }
+.cal-summary-item.partial .num { color: #d68f00; }
 .attendance-calendar { background: #fff; border-radius: 14px; padding: clamp(8px, min(4vw, 3.6vh), 38px); box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
 .cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); font-size: clamp(12px, 2vw, 15px); color: #999; text-align: center; margin-bottom: 6px; }
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: clamp(1px, min(1vw, 1vh), 10px); }
@@ -1454,7 +1457,7 @@ function buildRegCalendarHtml(r, mode) {
       </div>`
     : `<div class="cal-summary">
         <div class="cal-summary-item present"><span class="num">${hwDone}</span><span class="lbl">완료</span></div>
-        <div class="cal-summary-item makeup"><span class="num">${monthHw.filter((h) => h.status === "부분완료").length}</span><span class="lbl">일부 완료</span></div>
+        <div class="cal-summary-item partial"><span class="num">${monthHw.filter((h) => h.status === "부분완료").length}</span><span class="lbl">일부 완료</span></div>
         <div class="cal-summary-item absent"><span class="num">${monthHw.filter((h) => h.status === "미완료").length}</span><span class="lbl">미완료</span></div>
       </div>`
   const dowLabels = ["일", "월", "화", "수", "목", "금", "토"]
@@ -1706,7 +1709,8 @@ function findLatestComment(r, date) {
 
 function buildDailyBodyHtml(r, date) {
   const attendanceRow = (r.attendance_rows || []).find((a) => a.date === date)
-  const dueHomeworkToday = (r.homework || []).filter((h) => h.due && h.due === date)
+  const homeworkDayEntry = (r.homework_days || []).find((h) => h.date === date)
+  const homeworkStatusInfo = (status) => (status === "완료" ? { text: "제출", cls: "제출" } : status === "부분완료" ? { text: "부분완료", cls: "부분완료" } : { text: "미제출", cls: "미제출" })
   const todaysLogs = (r.study_logs || []).filter((l) => l.date === date)
   const nextHomework = findNextHomework(r, date)
   const todaysTests = (r.tests || []).filter((t) => t.date === date)
@@ -1720,7 +1724,7 @@ function buildDailyBodyHtml(r, date) {
       </div>
       <div class="status-box">
         <div class="label">📝 과제상태</div>
-        ${dueHomeworkToday.length ? dueHomeworkToday.map((h) => `<span class="badge ${esc(h.status)}">${esc(h.status)}</span>`).join(" ") : `<span class="badge">해당 없음</span>`}
+        ${homeworkDayEntry ? (() => { const info = homeworkStatusInfo(homeworkDayEntry.status); return `<span class="badge ${info.cls}">${info.text}</span>` })() : `<span class="badge">해당 없음</span>`}
       </div>
     </div>
 
