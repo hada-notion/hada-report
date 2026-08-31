@@ -333,7 +333,6 @@
     .mobile-view { display: block; }
     .filter-bar { flex-direction: column; }
     .filter-bar select { width: 100%; }
-    .search-input-wrap { flex: 0 0 auto; width: 100%; }
   }
 </style>
 </head>
@@ -439,11 +438,9 @@
 const SUPABASE_URL = "https://xcokusmqndfbsvlwquxr.supabase.co"
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhjb2t1c21xbmRmYnN2bHdxdXhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3OTk0NDcsImV4cCI6MjEwMzM3NTQ0N30.0vavFiupJD1fP8o5HKwIawEQoJUc3wz-RPCtFOyJBwU"
 const ADMIN_KEY_STORAGE = "admin_key"
-const LAST_ACTIVITY_STORAGE = "admin_last_activity"
 const FILTER_STORAGE = "admin_filters"
 const COLLAPSE_STORAGE = "admin_collapsed_groups"
 const STALE_DAYS = 7
-const AUTO_LOGOUT_MINUTES = 20
 
 function esc(s) {
   if (s === null || s === undefined) return ""
@@ -462,19 +459,6 @@ function getAdminKey() {
   return sessionStorage.getItem(ADMIN_KEY_STORAGE) || ""
 }
 
-function markActivity() {
-  sessionStorage.setItem(LAST_ACTIVITY_STORAGE, String(Date.now()))
-}
-
-function checkAutoLogout() {
-  const last = Number(sessionStorage.getItem(LAST_ACTIVITY_STORAGE) || 0)
-  if (!last) return
-  const idleMs = Date.now() - last
-  if (idleMs > AUTO_LOGOUT_MINUTES * 60 * 1000) {
-    logout(true)
-  }
-}
-
 function showLoginScreen(errorMsg) {
   document.getElementById("login-screen").style.display = "flex"
   document.getElementById("app-screen").style.display = "none"
@@ -486,7 +470,6 @@ function showLoginScreen(errorMsg) {
 function showAppScreen() {
   document.getElementById("login-screen").style.display = "none"
   document.getElementById("app-screen").style.display = "block"
-  markActivity()
   loadStudents()
 }
 
@@ -518,7 +501,6 @@ async function submitLogin() {
     }
     if (!res.ok) throw new Error(`서버 오류: ${res.status}`)
     sessionStorage.setItem(ADMIN_KEY_STORAGE, key)
-    markActivity()
     showAppScreen()
   } catch (err) {
     errEl.textContent = "로그인에 실패했습니다: " + err.message
@@ -528,10 +510,9 @@ async function submitLogin() {
   }
 }
 
-function logout(silent) {
+function logout() {
   sessionStorage.removeItem(ADMIN_KEY_STORAGE)
-  sessionStorage.removeItem(LAST_ACTIVITY_STORAGE)
-  showLoginScreen(silent ? "장시간 사용하지 않아 자동 로그아웃되었습니다." : "")
+  showLoginScreen("")
 }
 
 // ---------------- 비밀번호 변경 ----------------
@@ -581,7 +562,6 @@ async function submitPasswordChange() {
 
     // 새 비밀번호로 로그인 상태를 갱신해서 다음 동작도 끄지지 않게 이어지게 합니다.
     sessionStorage.setItem(ADMIN_KEY_STORAGE, next)
-    markActivity()
     closePasswordModal()
     showToast("비밀번호가 바뀌었습니다.")
   } catch (err) {
@@ -595,10 +575,6 @@ async function submitPasswordChange() {
 document.getElementById("login-input").addEventListener("keydown", (e) => {
   if (e.key === "Enter") submitLogin()
 })
-;["click", "keydown", "scroll", "input"].forEach((evt) => {
-  document.addEventListener(evt, () => { if (getAdminKey()) markActivity() }, { passive: true })
-})
-setInterval(checkAutoLogout, 30 * 1000)
 
 // ---------------- Data / formatting helpers ----------------
 function formatDate(iso) {
@@ -1533,7 +1509,6 @@ async function sendAlimtalkBulkRun(indices) {
 ;(function boot() {
   loadFilters()
   updateViewToggleUI()
-  checkAutoLogout()
   if (getAdminKey()) {
     showAppScreen()
   } else {
