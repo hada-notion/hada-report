@@ -409,7 +409,7 @@
 <div class="modal-overlay" id="password-modal">
   <div class="modal-box">
     <h3>🔑 비밀번호 변경</h3>
-    <p>현재 비밀번호와 새 비밀번호(4자 ���상)를 입력하세요.</p>
+    <p>현재 비밀번호와 새 비밀번호(4자 이상)를 입력하세요.</p>
     <input type="password" id="pw-current" placeholder="현재 비밀번호" style="width:100%;padding:9px 10px;margin-bottom:8px;border:1px solid #ddd;border-radius:8px;font-size:13px;">
     <input type="password" id="pw-new" placeholder="새 비밀번호 (4자 이상)" style="width:100%;padding:9px 10px;margin-bottom:8px;border:1px solid #ddd;border-radius:8px;font-size:13px;">
     <input type="password" id="pw-new-confirm" placeholder="새 비밀번호 확인" style="width:100%;padding:9px 10px;margin-bottom:8px;border:1px solid #ddd;border-radius:8px;font-size:13px;">
@@ -1311,7 +1311,7 @@ function sendAlimtalk(i) {
   openAlimtalkModal(`<strong>${esc(s.studentName)}</strong> (${esc(s.title || "")}) 학생에게<br>오늘 수업 알림톡을 발송할까요?`)
 }
 
-// 오늘 수업이 있는(현재 필터에 맞���) 학생 전원에게 일괄 전송합니다.
+// 오늘 수업이 있는(현재 필터에 맞는) 학생 전원에게 일괄 전송합니다.
 function sendAlimtalkBulk() {
   const filters = currentFilters()
   const targets = STUDENTS
@@ -1453,7 +1453,7 @@ async function regenerateLinkBulk() {
     .filter((i) => matchesFilters(STUDENTS[i], filters))
     .filter((i) => STUDENTS[i].accessToken)
   if (!targets.length) {
-    showToast("링크를 바꿀 대상이 ��습니다.")
+    showToast("링크를 바꿀 대상이 없습니다.")
     return
   }
   try {
