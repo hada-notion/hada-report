@@ -265,6 +265,7 @@ body {
 .cal-today-btn:active { background: #ece9ff; }
 .attendance-calendar .cal-day.완료 { background: #e6f7ee; color: #1e9e5c; font-weight: 700; }
 .attendance-calendar .cal-day.미완료 { background: #fdeaea; color: #e04b4b; font-weight: 700; }
+.attendance-calendar .cal-day.부분완료 { background: #fff6e0; color: #d68f00; font-weight: 700; }
 .attendance-calendar .cal-day.today:not(.selected) { box-shadow: inset 0 0 0 2px #a29bfe; }
 .cal-cell.today { box-shadow: inset 0 0 0 2px #a29bfe; }
 .seg-toggle { display: flex; background: #f0eefc; border-radius: 999px; padding: 3px; width: fit-content; margin: 0 auto 14px; }
@@ -304,6 +305,7 @@ body {
 .badge.보강 { background: #eaf1fd; color: #2f6fd9; }
 .badge.완료 { background: #e6f7ee; color: #1e9e5c; }
 .badge.미완료 { background: #fdeaea; color: #e04b4b; }
+.badge.부분완료 { background: #fff6e0; color: #d68f00; }
 
 .book-cards { display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 6px; margin: 0 -2px; -webkit-overflow-scrolling: touch; }
 .book-card { position: relative; flex: 0 0 clamp(150px, 44vw, 220px); aspect-ratio: 3 / 4; border-radius: 12px; overflow: hidden; background: linear-gradient(135deg, #ece9fb, #f5f3ff); box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
@@ -812,6 +814,11 @@ function todayIsoInSeoul() {
   return parts
 }
 const MOCK_TODAY = todayIsoInSeoul()
+// [FIX] Bound how far back the attendance calendar / schedule calendar / report
+// view can navigate. Keep this in sync with the 6-month sinceIso window computed
+// server-side in _shared/syncStudentReport.ts so users cannot page into months that
+// have no data (which is what made the calendar look like it scrolls forever).
+const MAX_LOOKBACK_MONTHS = 6
 
 function esc(s) {
   if (s === null || s === undefined) return ""
@@ -1074,6 +1081,9 @@ function registrationsBodyHtml() {
 }
 
 function navigateScheduleMonth(delta) {
+  // [FIX] Don't allow paging further back than MAX_LOOKBACK_MONTHS; without this the
+  // calendar could be paged back indefinitely into months with no data at all.
+  if (delta < 0 && scheduleMonthIndex <= -MAX_LOOKBACK_MONTHS) return
   scheduleMonthIndex += delta
   const area = document.getElementById("schedule-cal-area")
   if (area) {
@@ -1142,7 +1152,7 @@ function buildScheduleCalendarHtml() {
     <div class="schedule-cal-wrap">
       <div class="cal-month">
         <div class="cal-month-nav">
-          <button class="cal-nav-btn" onclick="navigateScheduleMonth(-1)">‹</button>
+          <button class="cal-nav-btn" ${scheduleMonthIndex <= -MAX_LOOKBACK_MONTHS ? "disabled" : ""} onclick="navigateScheduleMonth(-1)">‹</button>
           <div class="cal-month-title">${y}년 ${mo}월</div>
           <div class="cal-nav-right">
             <button class="cal-today-btn" onclick="goScheduleToday()">오늘</button>
@@ -1384,6 +1394,9 @@ function currentReg() {
   return STUDENT.registrations.find((x) => x.token === selectedToken)
 }
 function navigateRegCalMonth(delta) {
+  // [FIX] Don't allow paging further back than MAX_LOOKBACK_MONTHS; without this the
+  // calendar could be paged back indefinitely into months with no data at all.
+  if (delta < 0 && regCalMonthIndex <= -MAX_LOOKBACK_MONTHS) return
   regCalMonthIndex += delta
   const area = document.getElementById("reg-cal-area")
   if (area) {
@@ -1418,15 +1431,15 @@ function buildRegCalendarHtml(r, mode) {
       if (a.date && a.date.slice(0, 7) === monthKey) byDay[Number(a.date.slice(8, 10))] = esc(a.status)
     })
   } else {
-    (r.homework || []).forEach((h) => {
-      if (h.due && h.due.slice(0, 7) === monthKey) byDay[Number(h.due.slice(8, 10))] = h.status === "완료" ? "완료" : "미완료"
+    (r.homework_days || []).forEach((h) => {
+      if (h.date && h.date.slice(0, 7) === monthKey) byDay[Number(h.date.slice(8, 10))] = h.status
     })
   }
   // 해당 월 출결 요약 (출석 / 결석 / 보강)
   const monthRows = (r.attendance_rows || []).filter((a) => a.date && String(a.date).slice(0, 7) === monthKey)
   const countBy = (kw) => monthRows.filter((a) => String(a.status || "").includes(kw)).length
-  const monthHw = (r.homework || []).filter((h) => h.due && String(h.due).slice(0, 7) === monthKey)
-  const hwDone = monthHw.filter((h) => String(h.status || "").includes("완료")).length
+  const monthHw = (r.homework_days || []).filter((h) => h.date && String(h.date).slice(0, 7) === monthKey)
+  const hwDone = monthHw.filter((h) => h.status === "완료").length
   const summaryHtml = mode === "attendance"
     ? `<div class="cal-summary">
         <div class="cal-summary-item present"><span class="num">${countBy("출석")}</span><span class="lbl">출석</span></div>
@@ -1435,7 +1448,8 @@ function buildRegCalendarHtml(r, mode) {
       </div>`
     : `<div class="cal-summary">
         <div class="cal-summary-item present"><span class="num">${hwDone}</span><span class="lbl">완료</span></div>
-        <div class="cal-summary-item absent"><span class="num">${monthHw.length - hwDone}</span><span class="lbl">미완료</span></div>
+        <div class="cal-summary-item makeup"><span class="num">${monthHw.filter((h) => h.status === "부분완료").length}</span><span class="lbl">일부 완료</span></div>
+        <div class="cal-summary-item absent"><span class="num">${monthHw.filter((h) => h.status === "미완료").length}</span><span class="lbl">미완료</span></div>
       </div>`
   const dowLabels = ["일", "월", "화", "수", "목", "금", "토"]
   const firstDow = new Date(y, m - 1, 1).getDay()
@@ -1452,7 +1466,7 @@ function buildRegCalendarHtml(r, mode) {
   return `
     <div class="attendance-calendar">
       <div class="cal-month-nav">
-        <button class="cal-nav-btn" onclick="navigateRegCalMonth(-1)">‹</button>
+        <button class="cal-nav-btn" ${regCalMonthIndex <= -MAX_LOOKBACK_MONTHS ? "disabled" : ""} onclick="navigateRegCalMonth(-1)">‹</button>
         <div class="cal-month-title">${y}년 ${m}월</div>
         <div class="cal-nav-right">
           <button class="cal-today-btn" onclick="goRegCalToday()">오늘</button>
@@ -1585,7 +1599,7 @@ function buildReportTabHtml(r) {
   const reportComments = r.report_comments || []
   const { rangeStart, rangeEnd } = reportRange()
   const attendanceRows = (r.attendance_rows || []).filter((a) => a.date >= rangeStart && a.date <= rangeEnd)
-  const homeworkItems = homework.filter((h) => h.due && h.due >= rangeStart && h.due <= rangeEnd)
+  const homeworkItems = (r.homework_days || []).filter((h) => h.date && h.date >= rangeStart && h.date <= rangeEnd)
   const testItems = tests.filter((t) => t.date >= rangeStart && t.date <= rangeEnd)
   const presentCount = attendanceRows.filter((a) => a.status !== "결석").length
   const attRate = attendanceRows.length ? Math.round((presentCount / attendanceRows.length) * 100) : 0
@@ -1621,7 +1635,7 @@ function buildReportTabHtml(r) {
     <div class="section-hint">주간·월간·일간 학습 리포트를 확인하세요</div>
     ${segToggleHtml}
     <div class="cal-month-nav">
-      <button class="cal-nav-btn" ${reportOffset >= (reportPeriod === "week" ? 12 : 3) ? "disabled" : ""} onclick="navigateReportPeriod(1)">‹</button>
+      <button class="cal-nav-btn" ${reportOffset >= (reportPeriod === "week" ? MAX_LOOKBACK_MONTHS * 4 : MAX_LOOKBACK_MONTHS) ? "disabled" : ""} onclick="navigateReportPeriod(1)">‹</button>
       <div class="cal-month-title">${esc(periodLabel)}</div>
       <div class="cal-nav-right">
         <button class="cal-today-btn" onclick="goReportCurrent()">현재</button>
