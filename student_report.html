@@ -1117,14 +1117,14 @@ function addDaysStr(dateStr, days) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
 }
 
-// 이모지는 카테고리 '이름'과 분리해서 관리��다. 노션 원본의 이모지 표기가 조금 달라져도
+// 이모지는 카테고리 '이름'과 분리해서 관리한다. 노션 원본의 이모지 표기가 조금 달라져도
 // normalizeCategoryName()으로 이모지를 제거한 뒤 이름 텍스트만으로 매칭한다.
 function normalizeCategoryName(category) {
   return String(category || "")
     .replace(/[\p{Extended_Pictographic}\uFE0F\u200D]/gu, "")
     .trim()
 }
-const NOTICE_CATEGORY_COLORS = { "휴원": "#9b9a97", "��원 일정": "#337ea9", "학사 일정": "#e03e3e", "할일": "#448361" }
+const NOTICE_CATEGORY_COLORS = { "휴원": "#9b9a97", "학원 일정": "#337ea9", "학사 일정": "#e03e3e", "할일": "#448361" }
 const NOTICE_CATEGORY_EMOJI = { "휴원": "💤", "학원 일정": "📆", "학사 일정": "🏫", "할일": "✅" }
 // 할일(✅)은 강사/직원용 내부 항목이므로 학생에게는 절대 노출하지 않는다.
 function getStudentVisibleNotices() {
@@ -1373,7 +1373,7 @@ function renderIntro() {
         <h2>🗓️ 통합 시간표</h2>
         <div class="tt-hint">현재 수강중인 반들만 요일별로 합쳐서 보여줍니다</div>
         ${buildWeekGridHtml(s.registrations)}
-        <div class="up-hint" onclick="scrollToIntro()"><span class="chevron">���</span>다시 위로</div>
+        <div class="up-hint" onclick="scrollToIntro()"><span class="chevron">⌃</span>다시 위로</div>
         <div class="swipe-hint" onclick="scrollToSchedule()">일정 보기<span class="chevron">⌄</span></div>
       </div>
       <div class="snap-section schedule-section" id="schedule-section">
