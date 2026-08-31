@@ -95,6 +95,28 @@
   .stat-card.none .num { color: #999; }
   .stat-card.fail .num { color: #e04b4b; }
 
+  /* ---------- View toggle ---------- */
+  .view-toggle {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .view-tab {
+    padding: 8px 14px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 13px;
+    color: #666;
+    cursor: pointer;
+  }
+  .view-tab.active {
+    background: #6c5ce7;
+    border-color: #6c5ce7;
+    color: #fff;
+    font-weight: 600;
+  }
+
   /* ---------- Filter bar ---------- */
   .filter-bar {
     background: #fff;
@@ -218,7 +240,11 @@
     padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer;
   }
   button.secondary:disabled { color: #bbb; cursor: default; }
+  button.secondary.danger { border-color: #f3c9c9; color: #e04b4b; }
+  button.secondary.danger:disabled { border-color: #ddd; color: #bbb; }
   a.link { color: #6c5ce7; font-size: 12px; text-decoration: none; }
+  a.name-link { color: inherit; text-decoration: none; border-bottom: 1px dashed #6c5ce7; cursor: pointer; }
+  a.name-link:hover { color: #6c5ce7; }
 
   .error-toggle { font-size: 11px; color: #e04b4b; text-decoration: underline; cursor: pointer; background: none; border: none; padding: 0; margin-top: 4px; display: inline-block; }
   .error-detail { font-size: 11px; color: #a33; background: #fdf3f3; border-radius: 6px; padding: 6px 8px; margin-top: 4px; display: none; white-space: pre-wrap; }
@@ -331,6 +357,11 @@
     </div>
 
     <div class="stats" id="stats"></div>
+
+    <div class="view-toggle" id="view-toggle">
+      <button id="view-tab-student" class="view-tab" onclick="setViewMode('student')" title="학생 보기 · 학생별로 묶어서 등록을 펼쳐보는 모드입니다">🧑‍🎓 학생 보기</button>
+      <button id="view-tab-registration" class="view-tab" onclick="setViewMode('registration')" title="등록 보기 · 학생 구분 없이 등록 단위로 나열합니다">📋 등록 보기</button>
+    </div>
 
     <div class="filter-bar">
       <div class="search-input-wrap">
@@ -630,6 +661,32 @@ let STUDENTS = [] // flat list from the server, kept for lookups by index
 
 const ACTIVE_STATUS = "수강 중"
 
+// ---------------- View mode (학생 보기 / 등록 보기) ----------------
+const VIEW_MODE_STORAGE = "admin_view_mode"
+let VIEW_MODE = sessionStorage.getItem(VIEW_MODE_STORAGE) === "registration" ? "registration" : "student"
+
+function setViewMode(mode) {
+  VIEW_MODE = mode === "registration" ? "registration" : "student"
+  sessionStorage.setItem(VIEW_MODE_STORAGE, VIEW_MODE)
+  updateViewToggleUI()
+  renderAll()
+}
+
+function updateViewToggleUI() {
+  const studentTab = document.getElementById("view-tab-student")
+  const regTab = document.getElementById("view-tab-registration")
+  if (!studentTab || !regTab) return
+  studentTab.classList.toggle("active", VIEW_MODE === "student")
+  regTab.classList.toggle("active", VIEW_MODE === "registration")
+}
+
+// 자물쇠 토글 버튼을 클릭하여 활성화/비활성화를 전환합니다.
+async function toggleLinkStatus(index) {
+  const s = STUDENTS[index]
+  if (!s || !s.accessToken) return
+  await setLinkStatus(index, !s.linkDisabled)
+}
+
 function loadFilters() {
   try {
     const saved = JSON.parse(sessionStorage.getItem(FILTER_STORAGE) || "{}")
@@ -817,11 +874,34 @@ function renderList(filteredIndices, filters) {
 
   const expanded = loadExpandedSet()
 
+  if (VIEW_MODE === "registration") {
+    const flatIndices = sortIndices(filteredIndices, STUDENTS, filters.sort)
+    if (filters.sort === "name") {
+      flatIndices.sort((a, b) => (STUDENTS[a].studentName || "").localeCompare(STUDENTS[b].studentName || "", "ko"))
+    }
+    app.innerHTML = `
+      <div class="desktop-view">
+        <table>
+          <thead>
+            <tr><th>학생 / 등록</th><th>수강상태</th><th>보고서 상태</th><th>마지막 갱신</th><th>작업</th></tr>
+          </thead>
+          <tbody>
+            ${flatIndices.map((i) => renderDesktopRow(i, false, true)).join("")}
+          </tbody>
+        </table>
+      </div>
+      <div class="mobile-view">
+        ${flatIndices.map((i) => renderMobileReg(i, false, true)).join("")}
+      </div>
+    `
+    return
+  }
+
   app.innerHTML = `
     <div class="desktop-view">
       <table>
         <thead>
-          <tr><th>학생 / 등록</th><th>수강상태</th><th>보고서 상태</th><th>마지막 갱신</th><th>링크</th><th>작업</th></tr>
+          <tr><th>학생 / 등록</th><th>수강상태</th><th>보고서 상태</th><th>마지막 갱신</th><th>작업</th></tr>
         </thead>
         <tbody>
           ${groups.map((g, gi) => renderDesktopGroup(g, gi, expanded)).join("")}
@@ -834,36 +914,65 @@ function renderList(filteredIndices, filters) {
   `
 }
 
+// 학생 이름을 클릭하면 리포트 링크로 이동할 수 있도록 감쌉니다. 링크가 없으면 그냥 텍스트로 표시합니다.
+function nameLinkHtml(name, token) {
+  const safeName = esc(name)
+  if (!token) return safeName
+  return `<a class="name-link" href="${reportUrl(token)}" target="_blank" onclick="event.stopPropagation()" title="학생 리포트 페이지 열기 · 클릭하면 이 학생의 리포트 링크로 이동합니다">${safeName}</a>`
+}
+
+// 자물쇠 아이콘 하나로 활성화/비활성화를 토글합니다.
+function lockToggleButtonHtml(i, idPrefix) {
+  const s = STUDENTS[i]
+  const disabled = !s.accessToken
+  const isLocked = !!s.linkDisabled
+  const icon = isLocked ? "🔒" : "🔓"
+  const title = isLocked
+    ? "비활성화됨 · 클릭하면 링크를 다시 활성화합니다"
+    : "활성화됨 · 클릭하면 링크를 비활성화합니다"
+  return `<button class="secondary" id="${idPrefix}-${i}" onclick='toggleLinkStatus(${i})' ${disabled ? "disabled" : ""} title="${esc(title)}">${icon}</button>`
+}
+
+// 링크 변경(재발급) 아이콘 버튼입니다.
+function regenerateButtonHtml(i, idPrefix) {
+  const s = STUDENTS[i]
+  return `<button class="secondary danger" id="${idPrefix}-${i}" onclick='regenerateLink(${i})' ${s.accessToken ? "" : "disabled"} title="링크 변경 · 기존 링크를 무효화하고 새 링크를 발급합니다">♻️</button>`
+}
+
 function renderDesktopGroup(g, gi, expanded) {
   const groupKey = `g-${g.studentName}`
   const isCollapsed = !expanded.has(groupKey)
   const activeCount = g.indices.filter((i) => STUDENTS[i].status === ACTIVE_STATUS).length
   const first = STUDENTS[g.indices[0]]
   const metaLine = studentMetaLine(first)
+  const firstWithToken = g.indices.find((i) => STUDENTS[i].accessToken)
+  const nameToken = firstWithToken !== undefined ? STUDENTS[firstWithToken].accessToken : null
   return `
     <tr class="student-header" onclick='toggleGroupCollapse(${JSON.stringify(groupKey)})'>
-      <td colspan="5">
+      <td colspan="4">
         <span class="chev">${isCollapsed ? "▶" : "▼"}</span>
-        <strong>${esc(g.studentName)}</strong>
+        <strong>${nameLinkHtml(g.studentName, nameToken)}</strong>
         <span class="status">${metaLine ? esc(metaLine) + " · " : ""}등록 ${g.indices.length}건${activeCount ? `, 수강중 ${activeCount}` : ""}</span>
       </td>
       <td onclick="event.stopPropagation()">
-        <button class="action" id="syncall-${gi}" onclick='syncAllForStudent(${gi})' ${activeCount ? "" : "disabled"}>전체 동기화</button>
+        <button class="action" id="syncall-${gi}" onclick='syncAllForStudent(${gi})' ${activeCount ? "" : "disabled"} title="전체 동기화 · 이 학생의 모든 수강중 등록을 한 번에 갱신합니다">전체 동기화</button>
       </td>
     </tr>
     ${g.indices.map((i) => renderDesktopRow(i, isCollapsed)).join("")}
   `
 }
 
-function renderDesktopRow(i, isCollapsed) {
+function renderDesktopRow(i, isCollapsed, flat) {
   const s = STUDENTS[i]
   const status = reportStatus(s)
   const errMsg = s.error || s.lastError
+  const titleCell = flat
+    ? `<div>${nameLinkHtml(s.studentName, s.accessToken)}</div><div class="sub-meta">${esc(s.title || s.registrationId)}${s.teacherName ? ` · 담당: ${esc(s.teacherName)}` : ""}</div>`
+    : `${esc(s.title || s.registrationId)}${s.teacherName ? `<div class="sub-meta">담당: ${esc(s.teacherName)}</div>` : ""}`
   return `
     <tr id="row-${i}" class="reg-row${isCollapsed ? " collapsed" : ""}">
-      <td style="padding-left:28px">
-        ${esc(s.title || s.registrationId)}
-        ${s.teacherName ? `<div class="sub-meta">담당: ${esc(s.teacherName)}</div>` : ""}
+      <td style="padding-left:${flat ? "12" : "28"}px">
+        ${titleCell}
       </td>
       <td>${courseTagHtml(s.status)}</td>
       <td id="statuscell-${i}">
@@ -871,19 +980,12 @@ function renderDesktopRow(i, isCollapsed) {
         ${errMsg ? `<button class="error-toggle" onclick='toggleError(${i})'>오류 상세</button><div class="error-detail" id="errdetail-${i}">${esc(errMsg)}</div>` : ""}
       </td>
       <td class="status" id="updated-${i}">${formatDate(s.updatedAt)}${s.updatedAt ? `<div class="sub-meta">${relativeFromNow(s.updatedAt)}</div>` : ""}</td>
-      <td id="link-${i}">${s.accessToken ? `<a class="link" href="${reportUrl(s.accessToken)}" target="_blank">보기</a>` : "-"}</td>
       <td>
-        <button class="action ${status === "fail" ? "retry" : ""}" id="btn-${i}" onclick='onActionClick(${i})'>${actionLabel(status)}</button>
-        <button class="secondary" id="copy-${i}" onclick='copyLink(${JSON.stringify(s.accessToken || "")})' ${s.accessToken ? "" : "disabled"}>🔗</button>
-        <button class="secondary" id="alimtalk-${i}" onclick='sendAlimtalk(${i})' ${s.hasClassToday ? "" : "disabled"}>📩</button>
-        <div class="menu-wrap">
-          <button class="secondary" id="gear-${i}" onclick='toggleMenu(event, "menu-${i}")' ${s.accessToken ? "" : "disabled"}>⚙️</button>
-          <div class="dropdown-menu" id="menu-${i}">
-            <button onclick='closeAllMenus(); setLinkStatus(${i}, false)'>🔓 활성화</button>
-            <button onclick='closeAllMenus(); setLinkStatus(${i}, true)'>🔒 비활성화</button>
-            <button class="danger" onclick='closeAllMenus(); regenerateLink(${i})'>♻️ 링크 변경</button>
-          </div>
-        </div>
+        <button class="action ${status === "fail" ? "retry" : ""}" id="btn-${i}" onclick='onActionClick(${i})' title="동기화 · 최신 수업 정보로 리포트를 갱신합니다">${actionLabel(status)}</button>
+        <button class="secondary" id="copy-${i}" onclick='copyLink(${JSON.stringify(s.accessToken || "")})' ${s.accessToken ? "" : "disabled"} title="링크 복사 · 학부모용 리포트 링크를 클립보드에 복사합니다">🔗</button>
+        <button class="secondary" id="alimtalk-${i}" onclick='sendAlimtalk(${i})' ${s.hasClassToday ? "" : "disabled"} title="알림톡 전송 · 오늘 수업한 학생에게 카카오 알림톡을 전송합니다">📩</button>
+        ${lockToggleButtonHtml(i, "lock")}
+        ${regenerateButtonHtml(i, "regen")}
       </td>
     </tr>
   `
@@ -894,11 +996,13 @@ function renderMobileGroup(g, gi, expanded) {
   const isCollapsed = !expanded.has(groupKey)
   const first = STUDENTS[g.indices[0]]
   const metaLine = studentMetaLine(first)
+  const firstWithToken = g.indices.find((i) => STUDENTS[i].accessToken)
+  const nameToken = firstWithToken !== undefined ? STUDENTS[firstWithToken].accessToken : null
   return `
     <div class="m-student-card">
       <div class="m-student-head" onclick='toggleGroupCollapse(${JSON.stringify(groupKey)})'>
         <div>
-          <div class="name">${esc(g.studentName)}</div>
+          <div class="name">${nameLinkHtml(g.studentName, nameToken)}</div>
           <div class="meta">${metaLine ? esc(metaLine) + " · " : ""}등록 ${g.indices.length}건</div>
         </div>
         <span class="chev">${isCollapsed ? "▶" : "▼"}</span>
@@ -908,16 +1012,17 @@ function renderMobileGroup(g, gi, expanded) {
   `
 }
 
-function renderMobileReg(i, isCollapsed) {
+function renderMobileReg(i, isCollapsed, flat) {
   const s = STUDENTS[i]
   const status = reportStatus(s)
   const errMsg = s.error || s.lastError
   return `
     <div class="m-reg${isCollapsed ? " collapsed" : ""}" id="mrow-${i}">
       <div class="m-reg-top">
-        <div class="m-reg-title">${esc(s.title || s.registrationId)}</div>
+        <div class="m-reg-title">${flat ? nameLinkHtml(s.studentName, s.accessToken) : esc(s.title || s.registrationId)}</div>
         ${statusBadgeHtml(status)}
       </div>
+      ${flat ? `<div class="m-reg-sub">${esc(s.title || s.registrationId)}</div>` : ""}
       <div class="m-reg-sub">
         ${courseTagHtml(s.status)}
         ${s.teacherName ? ` · 담당 ${esc(s.teacherName)}` : ""}
@@ -925,18 +1030,11 @@ function renderMobileReg(i, isCollapsed) {
       </div>
       ${errMsg ? `<button class="error-toggle" onclick='toggleError(${i}, true)'>오류 상세</button><div class="error-detail" id="errdetail-m-${i}">${esc(errMsg)}</div>` : ""}
       <div class="m-actions">
-        <button class="action ${status === "fail" ? "retry" : ""}" id="mbtn-${i}" onclick='onActionClick(${i})'>${actionLabel(status)}</button>
-        ${s.accessToken ? `<a class="link" style="align-self:center" href="${reportUrl(s.accessToken)}" target="_blank">보기</a>` : ""}
-        <button class="secondary" onclick='copyLink(${JSON.stringify(s.accessToken || "")})' ${s.accessToken ? "" : "disabled"}>🔗</button>
-        <button class="secondary" id="malimtalk-${i}" onclick='sendAlimtalk(${i})' ${s.hasClassToday ? "" : "disabled"}>📩</button>
-        <div class="menu-wrap">
-          <button class="secondary" id="mgear-${i}" onclick='toggleMenu(event, "mmenu-${i}")' ${s.accessToken ? "" : "disabled"}>⚙️</button>
-          <div class="dropdown-menu" id="mmenu-${i}">
-            <button onclick='closeAllMenus(); setLinkStatus(${i}, false)'>🔓 활성화</button>
-            <button onclick='closeAllMenus(); setLinkStatus(${i}, true)'>🔒 비활성화</button>
-            <button class="danger" onclick='closeAllMenus(); regenerateLink(${i})'>♻️ 링크 변경</button>
-          </div>
-        </div>
+        <button class="action ${status === "fail" ? "retry" : ""}" id="mbtn-${i}" onclick='onActionClick(${i})' title="동기화 · 최신 수업 정보로 리포트를 갱신합니다">${actionLabel(status)}</button>
+        <button class="secondary" onclick='copyLink(${JSON.stringify(s.accessToken || "")})' ${s.accessToken ? "" : "disabled"} title="링크 복사 · 학부모용 리포트 링크를 클립보드에 복사합니다">🔗</button>
+        <button class="secondary" id="malimtalk-${i}" onclick='sendAlimtalk(${i})' ${s.hasClassToday ? "" : "disabled"} title="알림톡 전송 · 오늘 수업한 학생에게 카카오 알림톡을 전송합니다">📩</button>
+        ${lockToggleButtonHtml(i, "mlock")}
+        ${regenerateButtonHtml(i, "mregen")}
       </div>
     </div>
   `
@@ -1253,6 +1351,7 @@ async function sendAlimtalkBulkRun(indices) {
 // ---------------- Boot ----------------
 ;(function boot() {
   loadFilters()
+  updateViewToggleUI()
   checkAutoLogout()
   if (getAdminKey()) {
     showAppScreen()
