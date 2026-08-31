@@ -535,8 +535,8 @@ body:not(.reg-expanded) .cal-hint { animation: calExtraFadeIn 0.26s ease both; }
 }
   #debug-clock {
     position: fixed; top: 4px; left: 50%; transform: translateX(-50%);
-    z-index: 9999; background: rgba(0,0,0,0.55); color: #fff;
-    font-size: 10px; padding: 3px 8px; border-radius: 6px;
+    z-index: 9999; color: #bbb;
+    font-size: 10px; padding: 2px 6px;
     pointer-events: none; white-space: nowrap;
   }
 </style>
@@ -1926,7 +1926,6 @@ function renderApp() {
   }
 }
 
-// 진단용: 이 화이지(프론트엔드)가 현재 시각을 어뚒게 인식하는지 확인하기 위해 추가합니다.
 function updateDebugClock() {
   const el = document.getElementById("debug-clock")
   if (!el) return
