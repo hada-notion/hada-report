@@ -1338,6 +1338,7 @@ function buildWeekGridHtml(regs) {
   const byDay = {}
   DAYS.forEach((d) => (byDay[d] = []))
   active.forEach((r) => { (r.schedule || []).forEach((s) => { if (byDay[s.day]) byDay[s.day].push({ ...s, class_name: r.class_name }) }) })
+  DAYS.forEach((d) => { byDay[d].sort((a, b) => (a.start || "").localeCompare(b.start || "")) })
   return `
     <div class="week-grid">
       ${DAYS.map((d) => `
@@ -1494,16 +1495,6 @@ function buildRegCalendarHtml(r, mode) {
         ${cells.join("")}
       </div>
       ${summaryHtml}
-      <div class="cal-legend">
-        ${mode === "attendance" ? `
-          <span><i class="dot" style="background:#1e9e5c"></i>출석</span>
-          <span><i class="dot" style="background:#e04b4b"></i>결석</span>
-          <span><i class="dot" style="background:#2f6fd9"></i>보강</span>
-        ` : `
-          <span><i class="dot" style="background:#1e9e5c"></i>완료</span>
-          <span><i class="dot" style="background:#e04b4b"></i>미완료</span>
-        `}
-      </div>
       <div class="cal-hint">날짜를 탭하면 데일리 리포트를 볼 수 있어요</div>
     </div>
   `
