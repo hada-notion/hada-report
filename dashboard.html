@@ -41,7 +41,7 @@
     margin-right: 20px;
     color: var(--text);
   }
-  .topbar a {
+  .topbar a, .topbar .nav-btn {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -51,12 +51,16 @@
     color: var(--muted);
     font-size: 14px;
     font-weight: 500;
+    border: none;
+    background: none;
+    font-family: inherit;
+    cursor: pointer;
   }
-  .topbar a.active {
+  .topbar a.active, .topbar .nav-btn.active {
     background: #edf3fc;
     color: var(--accent);
   }
-  .topbar a:hover:not(.active) { background: #f0f0ee; }
+  .topbar a:hover:not(.active), .topbar .nav-btn:hover:not(.active) { background: #f0f0ee; }
 
   /* 전체 레이아웃 */
   .layout {
@@ -223,12 +227,12 @@
 
 <div class="topbar">
   <div class="brand">하다 학원관리</div>
-  <a href="dashboard.html" class="active">📊 대시보드</a>
-  <a href="admin.html">🗂️ 리포트 어드민</a>
-  <a href="attendance_kiosk.html">🖊️ 키오스크</a>
+  <button class="nav-btn active" data-tab="dashboard" onclick="showTab('dashboard')">📊 대시보드</button>
+  <button class="nav-btn" data-tab="admin" onclick="showTab('admin')">🗂️ 리포트 관리</button>
+  <button class="nav-btn" data-tab="kiosk" onclick="showTab('kiosk')">🖊️ 키오스크</button>
 </div>
 
-<div class="layout">
+<div class="layout" id="page-dashboard">
   <div class="sidebar">
     <div class="item active" data-view="main">🏠 MAIN</div>
     <div class="item disabled" data-view="calendar">📅 캘린더 <span class="soon">준비중</span></div>
@@ -270,12 +274,37 @@
   </div>
 </div>
 
+<div id="page-iframe" style="display:none; height: calc(100vh - 52px);">
+  <iframe id="embed-frame" style="width:100%; height:100%; border:none;"></iframe>
+</div>
+
 <script>
 // ============ 설정 (배포 전 채워넣으세요) ============
 const SUPABASE_URL = "https://xcokusmqndfbsvlwquxr.supabase.co"
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhjb2t1c21xbmRmYnN2bHdxdXhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3OTk0NDcsImV4cCI6MjEwMzM3NTQ0N30.0vavFiupJD1fP8o5HKwIawEQoJUc3wz-RPCtFOyJBwU" // admin.html에서 쓰는 anon key와 동일한 값으로 교체
+const SUPABASE_ANON_KEY = "__SUPABASE_ANON_KEY__" // admin.html에서 쓰는 anon key와 동일한 값으로 교체
 const FUNCTION_URL = SUPABASE_URL + "/functions/v1/get-admin-dashboard"
+const TAB_PAGES = { admin: "admin.html", kiosk: "attendance_kiosk.html" }
 // =============================================================
+
+function showTab(tab) {
+  document.querySelectorAll(".nav-btn").forEach(function (btn) {
+    btn.classList.toggle("active", btn.dataset.tab === tab)
+  })
+  const dashboardPage = document.getElementById("page-dashboard")
+  const iframePage = document.getElementById("page-iframe")
+  const frame = document.getElementById("embed-frame")
+  if (tab === "dashboard") {
+    dashboardPage.style.display = "flex"
+    iframePage.style.display = "none"
+    frame.src = "about:blank"
+  } else {
+    dashboardPage.style.display = "none"
+    iframePage.style.display = "block"
+    if (frame.getAttribute("src") !== TAB_PAGES[tab]) {
+      frame.src = TAB_PAGES[tab]
+    }
+  }
+}
 
 const statusBadgeClass = {
   "🟢출석": "green",
